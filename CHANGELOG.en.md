@@ -12,6 +12,7 @@ Updates are listed newest first. Historical dates follow Git commit dates in Bei
 ## 2026-11-01 · Paperclip code maintenance
 
 - Share axis-aligned segment classification between paperclip variants and reuse bend-type normalization.
+- Remove duplicate waveguide layer initialization and share parameter-state writes for bend and S-bend PCells.
 
 ## 2026-10-31 · DRC deep trench layer
 
