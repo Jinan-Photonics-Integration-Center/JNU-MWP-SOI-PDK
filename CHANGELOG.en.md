@@ -9,6 +9,12 @@
 
 Updates are listed newest first. Historical dates follow Git commit dates in Beijing time (UTC+8). Related changes on the same day are grouped; the full commit history shows the content and timestamp of every commit.
 
+## 2026-11-07 · Whitebox update prompts and blackbox synchronization
+
+- At startup, KLayout checks for whitebox updates only when the library is installed and accessible. The prompt opens the existing updater; missing access or connectivity is ignored.
+- The local whitebox publishing command generates and verifies blackboxes, then publishes only changed blackbox GDS files to the existing PDK development branch.
+- Both `JNULib` and `JNULib_BlackBox` display the SOI PDK version while retaining their registered names.
+
 ## 2026-11-01 · Paperclip code maintenance
 
 - Share axis-aligned segment classification between paperclip variants and reuse bend-type normalization.

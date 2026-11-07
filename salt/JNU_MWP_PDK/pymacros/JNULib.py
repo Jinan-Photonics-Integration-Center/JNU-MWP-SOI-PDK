@@ -1,7 +1,7 @@
 # $autorun
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 # JNULib KLayout 器件库加载器。
 # 从指定 GDS 目录加载固定版图单元（fixed_gds 器件），
@@ -28,7 +28,7 @@ if SCRIPT_DIR not in sys.path:
 
 from JNU_MWP_tools.core.fixed_gds import fixed_gds_directory
 from JNU_MWP_tools.core.public_ebeam_cells import FIXED_CELL_ALIASES
-from JNU_MWP_tools.core.pdk_identity import TECHNOLOGY_NAME
+from JNU_MWP_tools.core.pdk_identity import PDK_VERSION, TECHNOLOGY_NAME
 
 GDS_DIR = fixed_gds_directory(SCRIPT_DIR)
 SOURCE_CELL_NAMES = FIXED_CELL_ALIASES
@@ -61,7 +61,7 @@ class JNULib(pya.Library):
 
     def __init__(self):
         # 库名保持稳定用于 PCell 识别；发行版本放在说明栏，供 Library 面板显示。
-        self.description = "v1.3, JNU MWP PDK components [Technology %s]" % TECHNOLOGY_NAME
+        self.description = "%s, JNU MWP PDK components [Technology %s]" % (PDK_VERSION, TECHNOLOGY_NAME)
         # 器件库保持全局可见，不绑定到 JNU_MWP_SOI_PDK technology，
         # 这样切换到其他 technology 时仍可同时调用 JNU 和 EBeam 等器件库。
 

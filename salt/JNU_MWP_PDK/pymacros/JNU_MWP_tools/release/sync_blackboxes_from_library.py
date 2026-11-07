@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """从独立 Library 仓库的全部固定白盒 GDS 同步公开黑盒。"""
 
@@ -18,6 +18,7 @@ if str(PYMACROS) not in sys.path:
     sys.path.insert(0, str(PYMACROS))
 
 from JNU_MWP_tools.core.public_ebeam_cells import PUBLIC_EBEAM_CELL_NAMES
+from JNU_MWP_tools.release.blackbox_validation import verify_blackbox_gds
 from JNU_MWP_tools.release.package_blackbox_pdk import LIBRARY_DBU, _draw_blackbox_cell
 
 
@@ -85,6 +86,7 @@ def sync_blackboxes(source, output=PYMACROS / "JNU_MWP_blackbox_gds"):
             target_names.add(target_name)
             output_names.add(output_name)
             _write_blackbox(cell, layout, staged / output_name, target_name=target_name)
+            verify_blackbox_gds(staged / output_name, target_name)
         if len(target_names) < 31:
             raise RuntimeError("独立器件库中固定白盒不足 31 个：%s" % source)
 

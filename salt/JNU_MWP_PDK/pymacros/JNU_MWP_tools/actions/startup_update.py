@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
-"""KLayout 启动后异步检查公开 PDK 的 main 更新。"""
+"""KLayout 启动后独立检查公开 PDK 与已安装的私有白盒。"""
 
 import builtins
 import queue
@@ -10,7 +10,7 @@ import threading
 
 import pya
 
-from JNU_MWP_tools.actions.install_pdk import probe_main_update, show_installer
+from JNU_MWP_tools.actions.install_pdk import probe_main_update, probe_private_update, show_installer
 from JNU_MWP_tools.core.ui_language import LANGUAGE_ZH, active_language
 
 
@@ -18,16 +18,19 @@ _SESSION_KEY = "_jnu_mwp_pdk_startup_update_scheduled"
 _ACTIVE_CHECK = None
 
 
-def _confirm_update(main_window, revisions):
+def _confirm_update(main_window, revisions, mode="update"):
     """只在 GUI 主线程询问；确认后直接启动现有安全更新流程。"""
     chinese = active_language() == LANGUAGE_ZH
     message = pya.QMessageBox(main_window)
     message.setIcon(pya.QMessageBox.Information)
-    message.setWindowTitle("JNU PDK 更新" if chinese else "JNU PDK Update")
-    message.setText(
-        "当前 JNU PDK 与 GitHub main 版本不同，是否立即更新？"
-        if chinese else "Your JNU PDK differs from GitHub main. Update now?"
-    )
+    if mode == "private":
+        message.setWindowTitle("JNU 白盒器件库更新" if chinese else "JNU Whitebox Library Update")
+        message.setText("已安装的白盒器件库有新版本，是否立即更新？"
+                        if chinese else "An update is available for the installed whitebox library. Update now?")
+    else:
+        message.setWindowTitle("JNU PDK 更新" if chinese else "JNU PDK Update")
+        message.setText("当前 JNU PDK 与 GitHub main 版本不同，是否立即更新？"
+                        if chinese else "Your JNU PDK differs from GitHub main. Update now?")
     message.setInformativeText(
         ("当前：%s；远端 main：%s。仅当本地 main 干净且可以快进时才会更新；完成后请重启 KLayout。"
          if chinese else
@@ -39,7 +42,7 @@ def _confirm_update(main_window, revisions):
     message.button(pya.QMessageBox.No).setText("稍后" if chinese else "Later")
     message.setDefaultButton(pya.QMessageBox.No)
     if pya.QMessageBox_StandardButton(message.exec_()) == pya.QMessageBox.Yes:
-        show_installer("update", auto_start=True)
+        show_installer(mode, auto_start=True)
 
 
 def schedule_startup_update_check():
@@ -58,22 +61,26 @@ def schedule_startup_update_check():
     timer.setInterval(100)
 
     def worker():
-        try:
-            revisions = probe_main_update(home)
-        except Exception:
-            revisions = None
-        events.put(revisions)
+        updates = []
+        for mode, probe in (("update", probe_main_update), ("private", probe_private_update)):
+            try:
+                revisions = probe(home)
+            except Exception:
+                continue
+            if revisions is not None:
+                updates.append((mode, revisions))
+        events.put(updates)
 
     def poll():
         global _ACTIVE_CHECK
         try:
-            revisions = events.get_nowait()
+            updates = events.get_nowait()
         except queue.Empty:
             return
         timer.stop()
         _ACTIVE_CHECK = None
-        if revisions is not None:
-            _confirm_update(main_window, revisions)
+        for mode, revisions in updates:
+            _confirm_update(main_window, revisions, mode)
 
     timer.timeout(poll)
     _ACTIVE_CHECK = (timer, poll)

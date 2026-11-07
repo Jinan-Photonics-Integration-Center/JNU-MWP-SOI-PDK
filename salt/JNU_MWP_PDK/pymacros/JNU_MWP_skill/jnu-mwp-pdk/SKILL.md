@@ -64,6 +64,7 @@ description: Use when developing, verifying, or packaging the JNU_MWP_PDK KLayou
 - 完整实验室 Salt Package 与黑盒包分开构建：`release/package_lab_pdk.py --gds-source <私有器件 checkout/JNU_MWP_gds>` 从 `Jinan-Photonics-Integration-Center/JNU-MWP-SOI-Library` 获取的本地 checkout 复制固定 GDS，并包含公开 PCell。完整 ZIP 仅内部交付，不上传公开 PDK 仓库；安装索引只在接收方本地生成，不嵌入凭据。`JNU_MWP_PDK_Startup.lym` 早期只注册技术和内部波导接口，公开库及 EBeam 桥接必须由 `pymacros/__init__.py` 在普通 autorun 阶段加载，避免 SiEPIC 在主窗口建立前被缓存成 batch 环境而丢失菜单。Package 不依赖额外 `tech` 副本；发布前验证独立安装及 SiEPIC/EBeam 共存冷启动。
 - Technology 注册名为 `JNU_MWP_SOI_PDK`，顶部菜单显示 `JNU_MWP_SOI_PDK V<版本号>`（当前 V1.9）；名称与版本统一维护在 `core/pdk_identity.py`。启动与菜单重载自动迁移旧 `JNU_MWP_PDK` 技术、默认选择、最近文件技术字段和原 JNU 桥接库关联。菜单内部路径与 Action ID 保持稳定，保留已有快捷键。Salt 包、安装目录、`.lyt` 文件名、canonical skill 路径和黑盒输出目录继续使用工程名 `JNU_MWP_PDK`；不得据此重命名 `JNULib` 或 `JNULib_BlackBox`。
 - 功能子菜单与动作标题统一同行显示“中文 / English”，不通过 Language 子菜单切换；重载旧菜单时移除旧语言入口，保持稳定 Action ID、内部菜单路径及用户快捷键。菜单双语显示不要求同时改写参数对话框原有的语言行为。
+- `JNULib` 与 `JNULib_BlackBox` 的说明栏版本从 `core/pdk_identity.py` 的 `PDK_VERSION` 读取，随 SOI PDK 菜单版本同步；库注册名保持稳定。
 - 当前安装仅使用 `salt/JNU_MWP_PDK/JNU_MWP_PDK.lyt`，仓库根目录不再维护 `tech/` 副本；技术及图层由包内启动宏注册。该配置必须保持可搬运：`base-path` 与 `original-base-path` 为空，`layer-properties_file` 为同目录相对路径 `layers.lyp`。运行时代码只可由 `__file__` 推导安装位置，禁止写入 `C:/Users/zjy/...` 等作者机器绝对路径；备用黑盒打包工具生成的 `.lyt` 同样遵守此规则。
 - `pymacros/README.md` 先完整写完中文，再完整写英文；不要交错排列双语段落。
 - 只有执行 `package_blackbox_pdk.py` 打包黑盒器件库时，才同步修改 `pymacros/README.md` 和 PDK 使用说明文档；普通代码开发、PCell/菜单/图层修改、规则更新、维护性脚本和单独文档请求都不得改写这两类文档。
@@ -73,7 +74,9 @@ description: Use when developing, verifying, or packaging the JNU_MWP_PDK KLayou
 
 ## Workflow
 
-固定器件新增、改名、几何或端口修改时，必须同步完成 SOI PDK 与独立 Library 两个仓库的相关改动并分别推送：白盒 GDS 文件名和顶层 cell 名、来源说明提交 Library 的 main；加载器映射、器件清单、黑盒与验收提交当前 PDK 开发分支。先确认白盒更新已提交，再重建黑盒。纯 PDK 工具或 PCell 代码修改不制造 Library 空提交。推送两个仓库后，才进行用户已授权的 PDK 合并和版本递增。
+固定器件新增、改名、几何或端口修改时，白盒 GDS 文件名、顶层 cell 名和来源说明提交到独立 Library 的 `main`，加载器映射、器件清单及验收提交当前 SOI PDK 开发分支。本机发布使用 `tools/publish_soi_blackboxes.py` 先推白盒，再重读核验并仅发布有变化的黑盒；详细步骤见 `references/workflows.md`。白盒 GDS 不进入公开仓库，不部署跨仓库凭据或定时任务。纯 PDK 工具或 PCell 代码修改不制造 Library 空提交。完成所需推送后，才进行用户已授权的 PDK 合并和版本递增。
+
+KLayout 启动时独立检查已安装白盒的更新；无白盒安装、无有效权限或离线时静默跳过，白盒提示不依赖公开 PDK 当前分支。
 
 推荐用户运行根目录 `Install_JNU_PDK.lym`：从运行中的 KLayout 读取 `application_data_path()`，无需用户寻找程序或配置目录。唯一逻辑源为 `actions/install_pdk.py`，修改后运行 `tools/build_install_macro.py` 生成独立宏并核验 XML 内源码一致。Git 克隆、更新和认证在后台线程执行，Qt 更新仅通过主线程 timer；仅快进无本地超前提交且已跟踪文件无修改的 main，保留无冲突的未跟踪文件，冲突时停止并保留本地文件。菜单提供 `Check for PDK Updates` 与 `Install / Update Whitebox Library`，独立 Library 只克隆到用户目录 `jnu_private`，不接收或保存凭据。安装回归使用临时 Git 仓库和隔离 KLayout GUI，不操作用户实际安装。
 

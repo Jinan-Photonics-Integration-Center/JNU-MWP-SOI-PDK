@@ -10,7 +10,9 @@
 - `pymacros/JNU_MWP_pcells/paperclip_spiral_composite.py`: Composite Paperclip。
 - `Jinan-Photonics-Integration-Center/JNU-MWP-SOI-Library/JNU_MWP_gds/`: 全部固定白盒 GDS 的独立 Git 规范源（当前 31 份）。公开 PDK 的 `pymacros/JNU_MWP_gds/` 不追踪 `.gds`；安装器把授权文件从 `jnu_private` 安全同步到此目录顶层并由 Git 忽略；顶层旧 `gds/` 和独立 `JNU_MWP_ebeam_gds/` 不得恢复。
 - `pymacros/JNULib.py`: 无固定白盒时仍加载公开 PCell；授权白盒同步后从统一目录加载全部固定器件，五个 EBeam 来源器件文件名、顶层 cell 名与库名统一（crossing 为 `1550_crossing4`），旧源名称仅作读取兼容，缺失时兼容 `jnu_private/JNU_MWP_gds/`。不公开注册工具内部 `Waveguide` / `Composite_Waveguide`。
-- `pymacros/JNU_MWP_tools/release/sync_blackboxes_from_library.py`: 以独立 Library 全量白盒为输入，重建公开仓库的固定黑盒（当前 31 个），跳过所有 PCell；变更白盒后必须执行并提交黑盒更新。
+- `pymacros/JNU_MWP_tools/release/sync_blackboxes_from_library.py`: 以独立 Library 全量白盒为输入，重建公开仓库的固定黑盒（当前 31 个），跳过所有 PCell；先重读校验，再写入有变化的 GDS。
+- 仓库根 `tools/publish_soi_blackboxes.py`: 本机推送已提交白盒后，比较远端 Library `main` 和 PDK 开发分支，只发布有变化的黑盒；不创建分支。
+- `pymacros/JNU_MWP_tools/actions/startup_update.py`: KLayout 启动时独立检查公开 PDK 与已安装白盒，白盒使用本机 Git 授权进行静默检查。
 - `pymacros/JNU_MWP_tools/core/`: 公共基础模块；`bend_sampling.py` 管理自适应采样，`bend_curvature.py` 管理 Bezier/Euler 曲率，`path_geometry.py` 把中心线扫掠结果规范化为 Polygon，`common.py` 管理图层/选择/上下文共享逻辑，`make_pin.py` 生成 SiEPIC 兼容端口，`devrec.py` 按端口边和非端口边净空规则生成公开 PCell 的矩形 DevRec，`gui_state.py` 按稳定窗口键原子保存并恢复自定义对话框尺寸，`ebeam_library_bridge.py` 为 JNU Technology 注册已安装 EBeam PDK 的同名 Library 视图。
 - `pymacros/JNU_MWP_tools/actions/`: KLayout 菜单动作；包含 Path↔Waveguide、SBend connect、Make Pins、Layer Exclude、Numerical text array、Snap components 与交互式 DRC。`path_to_waveguide.py` 负责当前用户版图中的内部 Waveguide PCell 按需注册与 variant 创建；`make_pins_for_cell.py` 以端口边对齐、非端口边 0.5 µm 净空规则生成或升级普通 cell 的 DevRec 与 PinRec；`drc.py` 将九层 Source Specification、全局参数和按层勾选的 DSL 规则封装为临时 DRC 宏，并把报告载入当前视图。
 - `pymacros/JNU_MWP_tools/release/package_blackbox_pdk.py`: 黑盒发布入口；发布包只复制工具包入口及 `core/actions`。

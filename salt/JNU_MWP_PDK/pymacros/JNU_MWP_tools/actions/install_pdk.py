@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """拖入安装宏与菜单共用的 Git 安装器；后台任务不接触 KLayout 对象。"""
 
@@ -209,38 +209,64 @@ def _existing_public_checkout(home):
         "保留白盒 GDS，再重新运行安装宏。" % target)
 
 
+def _probe_branch_update(repository, url, timeout, *, authenticated=False):
+    """只读比较本机与远端 main；私有库使用现有凭据，禁止交互认证。"""
+    if repository is None or not (repository / ".git").exists():
+        return None
+    git = find_git()
+    environment = os.environ.copy()
+    environment.update(
+        GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="Never",
+        GIT_ASKPASS="", SSH_ASKPASS_REQUIRE="never",
+    )
+    options = ["-c", "core.askPass="]
+    if authenticated:
+        environment.setdefault("GIT_SSH_COMMAND", "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes")
+    else:
+        options.extend(("-c", "credential.helper="))
+
+    def read(*arguments):
+        result = subprocess.run(
+            [git, *options, "-C", str(repository), *arguments],
+            env=environment, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace",
+            timeout=timeout, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return result.stdout.strip() if result.returncode == 0 else None
+
+    if read("branch", "--show-current") != "main":
+        return None
+    origin = read("remote", "get-url", "origin")
+    if not origin or _repo_identity(origin).casefold() != _repo_identity(url).casefold():
+        return None
+    local_revision = read("rev-parse", "HEAD")
+    remote_line = read("ls-remote", "--exit-code", "origin" if authenticated else url, "refs/heads/main")
+    if not local_revision or not remote_line:
+        return None
+    remote_revision, separator, branch = remote_line.partition("\t")
+    if not separator or branch != "refs/heads/main" or remote_revision == local_revision:
+        return None
+    if authenticated and read("merge-base", "--is-ancestor", remote_revision, local_revision) is not None:
+        # 本机已包含远端版本，避免把本机超前误报为有更新。
+        return None
+    return local_revision, remote_revision
+
+
 def probe_main_update(home, timeout=8):
-    """只读比较当前 main 与远端 main；开发分支和连接失败时静默跳过。"""
+    """公开 PDK 的开发分支及离线安装不提示更新。"""
     try:
-        repository = _existing_public_checkout(home)
-        if repository is None:
-            return None
-        git = find_git()
-        environment = os.environ.copy()
-        environment["GIT_TERMINAL_PROMPT"] = "0"
-        environment["GCM_INTERACTIVE"] = "Never"
+        return _probe_branch_update(_existing_public_checkout(home), PUBLIC_URL, timeout)
+    except (OSError, RuntimeError, subprocess.TimeoutExpired):
+        return None
 
-        def read(*arguments):
-            result = subprocess.run(
-                [git, "-c", "credential.helper=", "-C", str(repository), *arguments],
-                env=environment, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                text=True, encoding="utf-8", errors="replace", timeout=timeout,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            )
-            return result.stdout.strip() if result.returncode == 0 else None
 
-        if read("branch", "--show-current") != "main":
+def probe_private_update(home, timeout=8):
+    """仅对已安装白盒、且仍能非交互读取远端 main 的用户提示。"""
+    try:
+        repository = Path(home) / "jnu_private"
+        if not any(path.is_file() for path in (repository / "JNU_MWP_gds").glob("*.gds")):
             return None
-        if _repo_identity(read("remote", "get-url", "origin") or "") != _repo_identity(PUBLIC_URL):
-            return None
-        local_revision = read("rev-parse", "HEAD")
-        remote_line = read("ls-remote", "--exit-code", PUBLIC_URL, "refs/heads/main")
-        if not local_revision or not remote_line:
-            return None
-        remote_revision, separator, branch = remote_line.partition("\t")
-        if not separator or branch != "refs/heads/main" or remote_revision == local_revision:
-            return None
-        return local_revision, remote_revision
+        return _probe_branch_update(repository, PRIVATE_URL, timeout, authenticated=True)
     except (OSError, RuntimeError, subprocess.TimeoutExpired):
         return None
 
