@@ -39,9 +39,10 @@
 ## Legacy PCells and Cross-GDS Copy
 
 - 旧文件缺少恢复属性或 cell 被改名时，以 cold proxy 的 `basic_name` 和保存的参数识别内部波导；GDS 读入器可能把代理名称改回声明名，因此预览比对应按参数映射身份，再逐 cell 检查全部图层、文字、端口路径、属性及子实例。多边形顶点起点或绕向不同可用 Region 差集判等，不要求序列字符串一致。
-- 自动读后恢复只处理尚未编辑的文件；当前 PCell 与缓存图形不一致时保留缓存，不强制重新生成。新 Layout 创建后应立即具有内部声明，不能把等待轮询 timer 当作跨 GDS 粘贴的前提。
+- 自动恢复优先在内存中通过可撤销事务重连；仅未编辑的文件可以从磁盘快照重读。当前 PCell 与缓存图形不一致时保留缓存，不强制重新生成。新 Layout 创建后应立即具有内部声明，不能把等待轮询 timer 当作跨 GDS 粘贴的前提。
+- 原文件中的旧本地 Taper／直波导由 `core/legacy_local_pcells.py` 在公开库可用后尝试关联标准 JNU 库；按实际输入匹配身份并兼容整数／浮点数的表示差异，全部图形相同才重连真实父级 Instance，保留实例属性、阵列及变换。`each_parent_inst()` 的数组描述不可替代父 cell 中可修改的 Instance。原文件不自动保存；已编辑的 Layout 不通过磁盘重读覆盖。
 - 用户授权另存修复时，可在独立原生 KLayout 进程调用 `release/repair_cross_gds_layout.py` 的 `repair_file(source, output, report_path)`。工具先保留静态快照，再尝试恢复内部波导、标准 JNU Taper／直波导及固定库引用；仅接受全部图形及端口一致的候选，其他器件保持原有静态图形和层级。原文件、已有修复文件均不得覆盖。
-- 运行 `tests/verify_cross_gds_copy.py` 验证无恢复属性的旧上下文、改名 cell、失效声明的静态 fallback、实例属性、真实 GUI 深复制到空 Layout，以及复制后保存重开的几何和 PCell 身份；不能只用 `copy_tree` 的结果代替原生剪贴板流程。
+- 运行 `tests/verify_cross_gds_copy.py` 验证无恢复属性的旧上下文、改名 cell、失效声明的静态 fallback、实例属性、真实 GUI 深复制到空 Layout，以及复制后保存重开的几何和 PCell 身份。用户打开原文件并从 Cells 树复制指定子 cell 时，必须直接验证原文件和该树节点，覆盖先 File/New Layout 再切回源文件复制的顺序；另存修复版、顶层实例复制及 `copy_tree` 均不能代替这一流程。
 
 ## Interactive DRC
 
