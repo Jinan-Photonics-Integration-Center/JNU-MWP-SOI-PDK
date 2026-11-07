@@ -14,6 +14,7 @@ Updates are listed newest first. Historical dates follow Git commit dates in Bei
 - At startup, KLayout checks for whitebox updates only when the library is installed and accessible. The prompt opens the existing updater; missing access or connectivity is ignored.
 - The local whitebox publishing command generates and verifies blackboxes, then publishes only changed blackbox GDS files to the existing PDK development branch.
 - Both `JNULib` and `JNULib_BlackBox` display the SOI PDK version while retaining their registered names.
+- `Pcell_Taper` uses the last confirmed parameters for new placements and retains them across restarts. Canceling or opening an older GDS does not change them.
 
 ## 2026-11-01 · Paperclip code maintenance
 
