@@ -63,7 +63,6 @@ Updates are listed newest first. Historical dates follow Git commit dates in Bei
 
 ## 2026-10-26 · Cross-GDS copying and legacy PCell recovery
 
-- Restore matching legacy local Taper and straight-waveguide references in memory when opening the original GDS, without writing the source. Add validation of the original-file workflow: select a subcell in the Cells tree, create a new Layout before copying, paste and save/reopen.
 - Recover legacy Waveguides identified by PCell context even when route properties are missing or cells were renamed, preventing empty waveguides after copying to another GDS.
 - Compare every cell's layers, text, PinRec, properties and child hierarchy before automatic recovery. Retain cached geometry when the current implementation differs.
 - Add `JNU_MWP_tools/release/repair_cross_gds_layout.py` to save a repaired copy while preserving the source. Restore matching local Taper, straight and Waveguide references; retain unmatched devices as static cells and verify the saved GDS by rereading it.

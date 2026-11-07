@@ -16,11 +16,7 @@ import pya
 from JNU_MWP_tools.core.ui_language import localize_pcell_declaration
 from JNU_MWP_tools.core.waveguide_variant_names import normalize_local_waveguide_names
 from JNU_MWP_tools.core.common import RAW_PATH_GDS_PROPERTY, RAW_PATH_PROPERTY
-from JNU_MWP_tools.core.pcell_geometry import layout_geometry_equal, geometry_snapshot
-from JNU_MWP_tools.core.legacy_local_pcells import (
-    legacy_local_cells, pcell_context_key, restore_legacy_local_pcells,
-    prepare_pcell_recovery, apply_pcell_recovery, discard_prepared_pcells,
-)
+from JNU_MWP_tools.core.pcell_geometry import layout_geometry_equal
 
 
 INTERNAL_WAVEGUIDE_PCELL_NAMES = ("Waveguide", "Composite_Waveguide")
@@ -44,8 +40,6 @@ else:
     _REGISTRATION_STATE.setdefault("main_window_timers", [])
     _REGISTRATION_STATE.setdefault("pending_repairs", [])
 _REGISTRATION_STATE.setdefault("incompatible_snapshots", [])
-_REGISTRATION_STATE.setdefault("memory_recovery_attempts", [])
-_REGISTRATION_STATE.setdefault("current_view_hooks", [])
 
 
 def _property_or_call(obj, name, *args):
@@ -172,7 +166,7 @@ def _clean_unrecognized_file_layouts(view):
             filename = str(_property_or_call(cellview, "filename") or "")
             if (layout is not None and filename and os.path.isfile(filename)
                     and not _property_or_call(cellview, "is_dirty")
-                    and (_has_unrecognized_waveguides(layout) or legacy_local_cells(layout))):
+                    and _has_unrecognized_waveguides(layout)):
                 layouts.append(layout)
         except Exception:
             continue
@@ -181,57 +175,23 @@ def _clean_unrecognized_file_layouts(view):
 
 def _recovery_cell_names(layout, preview):
     """冷代理可能被读入器改回声明名，按上下文参数匹配预览中的真实 variant。"""
+    derived = {"name_suffix", "points_per_90", "npoints", "Bezier_Rmax", "Bezier_Rmin", "Euler_Reff"}
+
+    def key(cell):
+        return (cell.basic_name(), tuple(sorted((name, str(value))
+                for name, value in cell.pcell_parameters_by_name().items() if name not in derived)))
+
     candidates = {}
     for cell in preview.each_cell():
         if cell.is_proxy():
-            candidates.setdefault(pcell_context_key(cell), []).append(cell)
+            candidates.setdefault(key(cell), []).append(cell)
     names = {}
     for cell in layout.each_cell():
         if cell.is_proxy():
-            matches = candidates.get(pcell_context_key(cell), [])
+            matches = candidates.get(key(cell), [])
             if len(matches) == 1:
                 names[cell.name] = matches[0].name
     return names
-
-
-def _recover_current_memory(view, cellview, layout):
-    """修复当前内存而不重读磁盘；自动 cleanup 和真正未保存的编辑均可保留。"""
-    version = (layout, _RECOVERY_GENERATION)
-    if version in _REGISTRATION_STATE["memory_recovery_attempts"]:
-        return True
-    if _property_or_call(view, "is_transacting") or _property_or_call(layout, "under_construction"):
-        return True
-    before = geometry_snapshot(layout)
-    selected = _property_or_call(cellview, "cell")
-    selected_index = selected.cell_index() if selected is not None else None
-    planned = prepare_pcell_recovery(layout, _declaration_factories())
-    if not planned:
-        _REGISTRATION_STATE["memory_recovery_attempts"].append(version)
-        return False
-    started = False
-    try:
-        view.transaction("JNU restore missing PCell references")
-        started = True
-        apply_pcell_recovery(layout, planned)
-        names = {old_name: new_name for _old, _new, old_name, new_name in planned}
-        if not layout_geometry_equal(before, layout, names):
-            raise RuntimeError("PCell recovery would change existing in-memory geometry or hierarchy.")
-        view.commit()
-        started = False
-        for old_index, new_index, _old_name, _new_name in planned:
-            if selected_index == old_index:
-                cellview.set_cell(new_index)
-                break
-    except BaseException:
-        if started:
-            view.cancel()
-        discard_prepared_pcells(layout, planned)
-        raise
-    _REGISTRATION_STATE["memory_recovery_attempts"].append(version)
-    # 用户撤销恢复后不自动重做；重新打开文件或明确热重载后再允许恢复。
-    _REGISTRATION_STATE["memory_recovery_attempts"] = _REGISTRATION_STATE["memory_recovery_attempts"][-64:]
-    print("JNU MWP PDK: restored %d PCell references in memory without reloading the file." % len(planned))
-    return True
 
 
 def _recover_loaded_view(view):
@@ -250,15 +210,9 @@ def _recover_loaded_view(view):
             cellview = _property_or_call(view, "cellview", index)
             layout = _property_or_call(cellview, "layout")
             filename = str(_property_or_call(cellview, "filename") or "")
-            if (layout is None or not (_has_unrecognized_waveguides(layout) or legacy_local_cells(layout))):
-                continue
-            if legacy_local_cells(layout) and pya.Library.library_by_name("JNULib") is None:
-                # early autorun 尚未加载公开库时，留到普通 autorun 完成后再恢复。
-                continue
-            if _recover_current_memory(view, cellview, layout):
-                continue
-            # 无上下文、只有旧恢复属性的普通 cell 仍采用干净文件快照的兜底流程。
-            if not filename or not os.path.isfile(filename) or _property_or_call(cellview, "is_dirty"):
+            if (layout is None or not filename or not os.path.isfile(filename)
+                    or _property_or_call(cellview, "is_dirty")
+                    or not _has_unrecognized_waveguides(layout)):
                 continue
 
             # 固定一次文件快照；用户同时保存 GDS 时不让两次读取拿到不同版本。
@@ -277,7 +231,6 @@ def _recover_loaded_view(view):
                 preview = pya.Layout()
                 ensure_internal_waveguide_pcells(preview)
                 preview.read(snapshot)
-                restore_legacy_local_pcells(preview)
                 names = _recovery_cell_names(layout, preview)
                 if not layout_geometry_equal(layout, preview, names):
                     # 同一文件版本只拒绝一次；文件更新或模块重载后再允许重新检查。
@@ -301,13 +254,7 @@ def _recover_loaded_view(view):
                     layout.clear()
                     ensure_internal_waveguide_pcells(layout)
                     layout.read(snapshot)
-                    restored_legacy = restore_legacy_local_pcells(layout)
                     ensure_internal_waveguide_pcells(layout)
-                    if legacy_local_cells(layout):
-                        _REGISTRATION_STATE["incompatible_snapshots"].append(version)
-                        _REGISTRATION_STATE["incompatible_snapshots"] = _REGISTRATION_STATE["incompatible_snapshots"][-32:]
-                    if restored_legacy:
-                        print("JNU MWP PDK: restored %d legacy local PCells in memory; source file unchanged." % len(restored_legacy))
                     restored = layout.cell(selected_name) if selected_name else None
                     if restored is not None:
                         cellview.set_cell(restored.cell_index())
@@ -475,11 +422,6 @@ def install_internal_waveguide_registration(main_window=None):
         callback = lambda *args, __window=main_window: _on_view_created(__window, *args)
         main_window.on_view_created(callback)
         _remember_hook(main_window, callback, "main_window_hooks")
-    if not _has_hook(main_window, "current_view_hooks"):
-        # 其他插件可能替换新视图内的单一事件回调；视图切换后再次同步注册。
-        callback = lambda *args, __window=main_window: _dynamic_attach_all_views(__window)
-        main_window.on_current_view_changed(callback)
-        _remember_hook(main_window, callback, "current_view_hooks")
     _install_view_sync_timer(main_window)
     return registered
 
