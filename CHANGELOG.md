@@ -63,6 +63,7 @@
 
 ## 2026-10-26 · 跨 GDS 复制与旧 PCell 恢复
 
+- 补齐原文件直接打开时的旧本地 Taper／直波导兼容：在内存中精确匹配并恢复到标准 JNU 库引用，原 GDS 不写入。验收增加 Cells 树选中子 cell、先新建 Layout 再回原文件复制粘贴及保存重开，覆盖原文件使用流程。
 - 识别仅保留 PCell 上下文、缺少恢复属性或被改名的旧 Waveguide，首开文件时恢复内部声明，避免跨 GDS 复制后出现空波导。
 - 自动恢复前逐 cell 核对所有图层、文字、PinRec、属性及子层级；当前实现与缓存图形不一致时保留原图形。
 - 增加维护工具 `JNU_MWP_tools/release/repair_cross_gds_layout.py`：保留原 GDS，精确比对后将旧本地 Taper、直波导和 Waveguide 恢复为有效引用；无法匹配的器件保留为静态 cell，经保存重读后另存。

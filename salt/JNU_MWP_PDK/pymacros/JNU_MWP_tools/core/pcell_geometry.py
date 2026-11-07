@@ -9,6 +9,32 @@ from collections import Counter
 import pya
 
 
+def geometry_snapshot(layout):
+    """复制到独立数据库，避免托管 Layout.dup 的生命周期清空用户 Undo 历史。"""
+    snapshot = pya.Layout()
+    snapshot.dbu = layout.dbu
+    for key, value in layout.properties().items():
+        snapshot.set_property(key, value)
+    layers = {index: snapshot.layer(layout.get_info(index)) for index in layout.layer_indices()}
+    cells = {cell.cell_index(): snapshot.create_cell(cell.name) for cell in layout.each_cell()}
+    for old in layout.each_cell():
+        new = cells[old.cell_index()]
+        for key, value in old.properties().items():
+            new.set_property(key, value)
+        for index, target in layers.items():
+            for shape in old.shapes(index).each():
+                copied = new.shapes(target).insert(shape)
+                for key, value in shape.properties().items():
+                    copied.set_property(key, value)
+        for instance in old.each_inst():
+            array = instance.cell_inst.dup()
+            array.cell_index = cells[instance.cell_index].cell_index()
+            copied = new.insert(array)
+            for key, value in instance.properties().items():
+                copied.set_property(key, value)
+    return snapshot
+
+
 def _properties(obj):
     return tuple(sorted((repr(key), repr(value)) for key, value in obj.properties().items()))
 
