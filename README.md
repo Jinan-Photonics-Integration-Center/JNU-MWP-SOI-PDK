@@ -9,7 +9,7 @@
 
 暨南大学光电混合集成实验室的 KLayout 硅光 PDK，提供 `JNU_MWP_SOI_PDK` Technology、参数化 `JNULib`、固定器件 `JNULib_BlackBox`、波导工具和 DRC。顶部功能菜单显示 `JNU_MWP_SOI_PDK V1.9`。公开仓库可独立使用 9 类 PCell 与 32 个固定黑盒；32 份固定白盒 GDS 由独立器件库授权安装。
 
-**[技术手册 PDF（2026-11-09）](docs/JNU_SOI_PDK_Handbook_20261109.pdf)** · **[更新说明与日期](CHANGELOG.md)**
+**[技术手册 PDF（2026-11-09）](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-PDK/releases/tag/installer-macro)** · **[更新说明与日期](CHANGELOG.md)**
 
 <a id="克隆仓库安装windows"></a><a id="git-clone-installation-windows"></a>
 ## 安装与更新
