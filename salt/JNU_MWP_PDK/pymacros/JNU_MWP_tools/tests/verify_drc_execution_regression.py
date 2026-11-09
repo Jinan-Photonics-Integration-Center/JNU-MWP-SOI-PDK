@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-08
+# 时间: 2026-11
 
 """在 KLayout DRC 解释器中验证 JNU 当前 Cell DRC 临时宏能够实际执行。"""
 
@@ -19,6 +19,30 @@ if str(PYMACROS_DIR) not in sys.path:
 from JNU_MWP_tools.actions import drc  # noqa: E402
 
 
+def _add_m2_spacing_cases(layout, cell):
+    """放置互相隔离的 7、8、9 µm 边缘间距样例。"""
+    shapes = cell.shapes(layout.layer(pya.LayerInfo(12, 0)))
+    for index, gap in enumerate((7000, 8000, 9000)):
+        x = 100000 * (index + 1)
+        shapes.insert(pya.Box(x, 0, x + 15000, 40000))
+        shapes.insert(pya.Box(x + 15000 + gap, 0, x + 30000 + gap, 40000))
+
+
+def _verify_m2_spacing(report_database):
+    """间距违规必须只标在 7 µm 样例，8 和 9 µm 都应通过。"""
+    category = next(
+        (category for category in report_database.each_category()
+         if category.name() == "M2 间距违规"), None,
+    )
+    assert category is not None, "未生成 M2 间距违规类别。"
+    items = list(report_database.each_item_per_category(category.rdb_id()))
+    assert len(items) == 1, "只有 7 µm M2 间距应产生一个 marker。"
+    values = list(items[0].each_value())
+    assert len(values) == 1 and values[0].is_edge_pair()
+    bounds = values[0].edge_pair().bbox()
+    assert 114 < bounds.left <= bounds.right < 123, "M2 间距 marker 位置不在 7 µm 样例。"
+
+
 def main():
     """写出含确定违规的最小 GDS，验证报告中确实产生 marker。"""
     layout = pya.Layout()
@@ -31,6 +55,7 @@ def main():
     top.shapes(pin_layer).insert(
         pya.Path([pya.Point(2000, 0), pya.Point(2020, 0)], 500)
     )
+    _add_m2_spacing_cases(layout, top)
 
     with tempfile.TemporaryDirectory(prefix="jnu_mwp_drc_execution_") as directory:
         input_path = os.path.join(directory, "input.gds")
@@ -47,6 +72,7 @@ def main():
                 raise RuntimeError("DRC 没有生成报告文件。")
             report_database = pya.ReportDatabase()
             report_database.load(report_path)
+            _verify_m2_spacing(report_database)
             if report_database.num_items() < 2:
                 raise RuntimeError(
                     "DRC 报告未包含预期的 Si 宽度和 PinRec 违规：%d。"
@@ -70,6 +96,7 @@ def main():
     active_top.shapes(active_pin).insert(
         pya.Path([pya.Point(2000, 0), pya.Point(2020, 0)], 500)
     )
+    _add_m2_spacing_cases(active_layout, active_top)
     cellview.cell = active_top
 
     # Macro Development 工具栏连续运行同一 .lydrc 时，每次都必须新增非空报告。
@@ -96,6 +123,7 @@ def main():
                 "原生 Macro Development DRC 第 %d 次未显示预期版图错误：%d。"
                 % (run_number, marker_count)
             )
+        _verify_m2_spacing(native_report)
 
     errors = []
     original_show_error = drc._show_error

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-08
+# 时间: 2026-11
 
 """验证原生 Macro Development DRC 编辑入口、规则持久化与当前 Cell 范围。"""
 
@@ -125,9 +125,9 @@ def main():
     assert "LayerM1.space(6.0 - tol)" in default_code
     assert "M1 最小间距违规，最小要求 6 um" in default_code
     assert "LayerM2.width(10.0 - tol" in default_code
-    assert "LayerM2.space(6.0 - tol)" in default_code
+    assert "LayerM2.space(8.0 - tol)" in default_code
     assert "M2 最小宽度违规，最小要求 10 um" in default_code
-    assert "M2 最小间距违规，最小要求 6 um" in default_code
+    assert "M2 最小间距违规，最小要求 8 um" in default_code
     assert "LayerDeepTrench.separation(LayerM2, 12.0 - tol)" in default_code
     assert "深槽与 M2 最小间距违规，最小要求 12 um" in default_code
     executable_lines = [line.split("#", 1)[0].strip() for line in default_code.splitlines()]
