@@ -13,6 +13,7 @@
 - `pymacros/JNU_MWP_tools/release/sync_blackboxes_from_library.py`: 以独立 Library 全量白盒为输入，重建公开仓库的固定黑盒（当前 32 个），跳过所有 PCell；先重读校验，再写入有变化的 GDS。
 - 仓库根 `tools/publish_soi_blackboxes.py`: 本机推送已提交白盒后，比较远端 Library `main` 和 PDK 开发分支，只发布有变化的黑盒；不创建分支。
 - `pymacros/JNU_MWP_tools/actions/startup_update.py`: KLayout 启动时独立检查公开 PDK 与已安装白盒，白盒使用本机 Git 授权进行静默检查。
+- `pymacros/JNU_MWP_tools/core/layout_api.py`: AI 和脚本使用的版图 API；`tools/jnu_soi_layout.py` 为 JSON 批处理入口，调用约定见仓库根 `docs/SOI_LAYOUT_API.md`。API 使用已安装器件库和原生 Waveguide PCell，坐标以 µm 表示。
 - `pymacros/JNU_MWP_tools/core/`: 公共基础模块；`bend_sampling.py` 管理自适应采样，`bend_curvature.py` 管理 Bezier/Euler 曲率，`path_geometry.py` 把中心线扫掠结果规范化为 Polygon，`common.py` 管理图层/选择/上下文共享逻辑，`make_pin.py` 生成 SiEPIC 兼容端口，`devrec.py` 按端口边和非端口边净空规则生成公开 PCell 的矩形 DevRec，`gui_state.py` 按稳定窗口键原子保存并恢复自定义对话框尺寸，`ebeam_library_bridge.py` 为 JNU Technology 注册已安装 EBeam PDK 的同名 Library 视图。
 - `pymacros/JNU_MWP_tools/actions/`: KLayout 菜单动作；包含 Path↔Waveguide、SBend connect、Make Pins、Layer Exclude、Numerical text array、Snap components 与交互式 DRC。`path_to_waveguide.py` 负责当前用户版图中的内部 Waveguide PCell 按需注册与 variant 创建；`make_pins_for_cell.py` 以端口边对齐、非端口边 0.5 µm 净空规则生成或升级普通 cell 的 DevRec 与 PinRec；`drc.py` 将九层 Source Specification、全局参数和按层勾选的 DSL 规则封装为临时 DRC 宏，并把报告载入当前视图。
 - `pymacros/JNU_MWP_tools/release/package_blackbox_pdk.py`: 黑盒发布入口；发布包只复制工具包入口及 `core/actions`。

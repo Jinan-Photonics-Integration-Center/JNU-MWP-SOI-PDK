@@ -11,6 +11,8 @@ Updates are listed newest first. Historical dates follow Git commit dates in Bei
 
 ## 2026-11-09 · V1.10 development branch
 
+- Add a JNU SOI layout API and JSON batch entry point for device discovery, PCell placement, named-port routing, and GDS export.
+
 - V1.9 was merged into main in PR #7. The development branch and menu version advance to V1.10.
 - The native DRC now requires 8 µm of minimum M2 edge-to-edge spacing, up from 6 µm. M1 spacing and deep-trench-to-M2 spacing are unchanged.
 

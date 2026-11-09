@@ -45,6 +45,8 @@ Copy these prompts into an AI agent **that can access local files and run comman
 
 ## Features and user guide
 
+For AI-assisted or scripted layout, see the [JNU SOI layout API](docs/SOI_LAYOUT_API.md) to discover devices, connect named ports, and export GDS.
+
 **Click any card below to open its section in the [detailed user guide](docs/USER_GUIDE.md#english-user-guide).**
 
 <table>
