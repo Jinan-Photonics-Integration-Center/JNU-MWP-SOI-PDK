@@ -66,10 +66,10 @@ def main():
                     assert (info.layer, info.datatype) in {(1, 0), (1, 10), (68, 0), (10, 0), (998, 0)}
                 if cell.name not in names:
                     assert not shapes or (info.layer, info.datatype) == (10, 0)
-    assert len(names) == 31, "黑盒器件数应为 31 个：%d" % len(names)
+    assert len(names) == 32, "黑盒器件数应为 32 个：%d" % len(names)
     assert {
         "1550_crossing4", "1310_500nm_TE_terminator", "1550_500nm_TE_terminator",
-        "1310_Ybranch", "1550_Ybranch",
+        "1310_Ybranch", "1550_Ybranch", "1550_PR",
     } <= names
     assert not any(name.startswith("Pcell_") for name in names)
     assert "1550_2um_TE_terminator" in names

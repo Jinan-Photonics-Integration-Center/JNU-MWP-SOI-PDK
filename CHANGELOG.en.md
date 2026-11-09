@@ -9,7 +9,9 @@
 
 Updates are listed newest first. Historical dates follow Git commit dates in Beijing time (UTC+8). Related changes on the same day are grouped; the full commit history shows the content and timestamp of every commit.
 
-## 2026-11-09 · Blackbox optical port annotations
+## 2026-11-09 · Blackbox optical port annotations and 1550 PR
+
+- Added `1550_PR`, a 1550 nm polarization rotator with two optical ports. The authorized device library provides the whitebox, and the PDK includes the blackbox.
 
 - Blackboxes for SOI polarization devices and splitters retain the source Text (10/0) annotations for inputs, outputs, polarization and splitting ratios next to the corresponding PinRec names, inside the blackbox outline. PinRec names and port geometry are unchanged.
 

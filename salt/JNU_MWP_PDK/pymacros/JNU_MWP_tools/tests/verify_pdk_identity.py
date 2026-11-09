@@ -39,7 +39,7 @@ def _probe():
     technology = pya.Technology.technology_by_name(TECHNOLOGY_NAME)
     assert Path(technology.eff_layer_properties_file()).resolve() == (package / "layers.lyp").resolve()
     black = pya.Library.library_by_name("JNULib_BlackBox")
-    assert black and len(list(black.layout().each_top_cell())) == 31
+    assert black and len(list(black.layout().each_top_cell())) == 32
     assert TECHNOLOGY_NAME in black.description
     white = pya.Library.library_by_name("JNULib")
     black_only = os.environ["JNU_IDENTITY_MODE"] == "black"
