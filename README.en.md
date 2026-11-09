@@ -9,7 +9,7 @@
 
 A KLayout silicon photonics PDK from Jinan University's Optoelectronic Hybrid Integration Laboratory. It provides the `JNU_MWP_SOI_PDK` technology, parametric `JNULib`, fixed-device `JNULib_BlackBox`, waveguide tools, and DRC. The top-level menu shows `JNU_MWP_SOI_PDK V1.9`. The public repository works independently with nine PCell types and 32 fixed blackboxes; 32 fixed whitebox GDS files are available through a separately authorized library.
 
-**[Changelog and update dates](CHANGELOG.en.md)**
+**[Technical handbook PDF (Chinese, 2026-11-09)](docs/JNU_SOI_PDK_Handbook_20261109.pdf)** · **[Changelog and update dates](CHANGELOG.en.md)**
 
 <a id="git-clone-installation-windows"></a>
 ## Installation and updates

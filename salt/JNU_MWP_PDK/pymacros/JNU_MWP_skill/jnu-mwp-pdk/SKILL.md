@@ -74,6 +74,8 @@ description: Use when developing, verifying, or packaging the JNU_MWP_PDK KLayou
 
 ## Workflow
 
+推送 SOI 技术手册时，以本次实际修改日（北京时间）更新封面日期，本地 Word 和 PDF 同用 `JNU_SOI_PDK_Handbook_YYYYMMDD` 文件名主干，例如 `JNU_SOI_PDK_Handbook_20261109.pdf`。公开仓库只提交 `docs/` 下的 PDF，并同步根目录 `README.md` 和 `README.en.md` 的手册相对链接。发布版不显示内部项目名称、原始数据出处或本机路径；保留性能数值及必要的测试口径。推送前核对封面日期、PDF 文件名、目录跳转和两处 README 链接。
+
 固定器件新增、改名、几何或端口修改时，白盒 GDS 文件名、顶层 cell 名和来源说明提交到独立 Library 的 `main`，加载器映射、器件清单及验收提交当前 SOI PDK 开发分支。本机发布使用 `tools/publish_soi_blackboxes.py` 先推白盒，再重读核验并仅发布有变化的黑盒；详细步骤见 `references/workflows.md`。白盒 GDS 不进入公开仓库，不部署跨仓库凭据或定时任务。纯 PDK 工具或 PCell 代码修改不制造 Library 空提交。完成所需推送后，才进行用户已授权的 PDK 合并和版本递增。
 
 KLayout 启动时独立检查已安装白盒的更新；无白盒安装、无有效权限或离线时静默跳过，白盒提示不依赖公开 PDK 当前分支。
