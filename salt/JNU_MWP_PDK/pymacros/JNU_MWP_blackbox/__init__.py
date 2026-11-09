@@ -1,7 +1,7 @@
 # $autorun
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 # JNULib_BlackBox 黑盒器件库初始化脚本。
 # 直接加载已验收的黑盒 GDS，保留 BlackBox 主体、Si 端口直段及 PinRec。
@@ -25,7 +25,7 @@ LIBRARY_DBU = 0.001                  # JNU_MWP_PDK 的数据库单位，1 nm。
 LIBRARY_NAME = "JNULib_BlackBox"
 LEGACY_LIBRARY_NAMES = ("JNULib_BlackBox_v1.1", "JNULib_BlackBox_v1.0")
 BLACKBOX_GDS_DIR = os.path.join(PYMACROS_DIR, "JNU_MWP_blackbox_gds")
-from JNU_MWP_tools.core.pdk_identity import TECHNOLOGY_NAME
+from JNU_MWP_tools.core.pdk_identity import PDK_VERSION, TECHNOLOGY_NAME
 
 
 def _directory_has_gds(directory):
@@ -80,7 +80,7 @@ class JNULibBlackBox(pya.Library):
 
     def __init__(self):
         # 黑盒库同样保持稳定身份，并在 Library 面板说明栏显示发行版本。
-        self.description = "v1.3, JNU MWP PDK black-box components [Technology %s]" % TECHNOLOGY_NAME
+        self.description = "%s, JNU MWP PDK black-box components [Technology %s]" % (PDK_VERSION, TECHNOLOGY_NAME)
 
         ly = self.layout()
 

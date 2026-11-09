@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 # 生成可分发的 JNU_MWP_PDK 黑盒版本。
 # 输出目录默认在桌面：JNU_MWP_PDK_blackbox_v1.1。
 # 发布包同时包含 salt/JNU_MWP_PDK 和 tech/JNU_MWP_PDK，便于 KLayout 原生识别 Technology。
 
 import argparse
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -279,6 +280,46 @@ def _copy_pin_layer(src_cell, dst_cell, src_layout, dst_layout):
         iterator.next()
 
 
+def _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout, body):
+    """按白盒文字找到对应 PinRec，说明文字从黑盒边缘向内排。"""
+    if not re.search(r"(?:^|_)(?:PBS|PSR|PR|polarizer|splitter|MMI|Ybranch|DC)(?:_|$)",
+                     dst_cell.name, re.IGNORECASE):
+        return
+    source_index = src_layout.find_layer(TEXT_LAYER)
+    if source_index is None or source_index < 0:
+        return
+
+    pins = [shape.text for shape in dst_cell.shapes(dst_layout.layer(PIN_LAYER)).each()
+            if shape.is_text()]
+    if not pins:
+        return
+    inset = max(1, round(0.25 / dst_layout.dbu))
+    iterator = src_cell.begin_shapes_rec(source_index)
+    while not iterator.at_end():
+        shape = iterator.shape()
+        if shape.is_text():
+            text = shape.text.transformed(iterator.itrans())
+            if re.fullmatch(r"(?:in(?:put)?|out(?:put)?|(?:TE|TM)\d*(?:\s*\+\s*(?:TE|TM)\d*)?|\d+(?:\.\d+)?\s*%)",
+                            text.string.strip(), re.IGNORECASE):
+                disp = _scale_point(text.trans.disp, src_layout.dbu, dst_layout.dbu)
+                pin = min(pins, key=lambda item: (item.x - disp.x)**2 + (item.y - disp.y)**2)
+                left = pin.x <= body.center().x
+                x = body.left + inset if left else body.right - inset
+                y = min(body.top - inset, max(body.bottom + inset, pin.y))
+                label = pya.Text(text.string, pya.Trans(x, y))
+                label.size = _scale_length(text.size, src_layout.dbu, dst_layout.dbu)
+                label.halign = pya.Text.HAlignLeft if left else pya.Text.HAlignRight
+                # 顶边附近的文字向下排，底边附近的文字向上排。
+                if body.top - y < label.size:
+                    label.valign = pya.Text.VAlignTop
+                elif y - body.bottom < label.size:
+                    label.valign = pya.Text.VAlignBottom
+                else:
+                    label.valign = pya.Text.VAlignCenter
+                dst_cell.shapes(dst_layout.layer(TEXT_LAYER)).insert(label)
+        iterator.next()
+
+
 def _draw_port_straights(cell, footprint):
     """按原端口向内绘制直段，主体边界退到直段内端，连接坐标保持不变。"""
     layout = cell.layout()
@@ -345,6 +386,7 @@ def _draw_blackbox_cell(src_cell, src_layout, dst_layout, target_name=None):
 
     body = _draw_port_straights(dst_cell, si_bbox)
     dst_cell.shapes(devrec_index).insert(devrec_bbox)
+    _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout, body)
 
     label_text = dst_cell.name + " (black box)"
     if not _insert_basic_text(dst_cell, body, dst_layout.dbu, label_text):

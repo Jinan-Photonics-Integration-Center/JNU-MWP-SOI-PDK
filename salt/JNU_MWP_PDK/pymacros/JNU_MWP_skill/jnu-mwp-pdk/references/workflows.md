@@ -39,9 +39,10 @@
 ## Legacy PCells and Cross-GDS Copy
 
 - 旧文件缺少恢复属性或 cell 被改名时，以 cold proxy 的 `basic_name` 和保存的参数识别内部波导；GDS 读入器可能把代理名称改回声明名，因此预览比对应按参数映射身份，再逐 cell 检查全部图层、文字、端口路径、属性及子实例。多边形顶点起点或绕向不同可用 Region 差集判等，不要求序列字符串一致。
-- 自动读后恢复只处理尚未编辑的文件；当前 PCell 与缓存图形不一致时保留缓存，不强制重新生成。新 Layout 创建后应立即具有内部声明，不能把等待轮询 timer 当作跨 GDS 粘贴的前提。
+- 自动恢复优先在内存中通过可撤销事务重连；仅未编辑的文件可以从磁盘快照重读。当前 PCell 与缓存图形不一致时保留缓存，不强制重新生成。新 Layout 创建后应立即具有内部声明，不能把等待轮询 timer 当作跨 GDS 粘贴的前提。
+- 原文件中的旧本地 Taper／直波导由 `core/legacy_local_pcells.py` 在公开库可用后尝试关联标准 JNU 库；按实际输入匹配身份并兼容整数／浮点数的表示差异，全部图形相同才重连真实父级 Instance，保留实例属性、阵列及变换。`each_parent_inst()` 的数组描述不可替代父 cell 中可修改的 Instance。原文件不自动保存；已编辑的 Layout 不通过磁盘重读覆盖。
 - 用户授权另存修复时，可在独立原生 KLayout 进程调用 `release/repair_cross_gds_layout.py` 的 `repair_file(source, output, report_path)`。工具先保留静态快照，再尝试恢复内部波导、标准 JNU Taper／直波导及固定库引用；仅接受全部图形及端口一致的候选，其他器件保持原有静态图形和层级。原文件、已有修复文件均不得覆盖。
-- 运行 `tests/verify_cross_gds_copy.py` 验证无恢复属性的旧上下文、改名 cell、失效声明的静态 fallback、实例属性、真实 GUI 深复制到空 Layout，以及复制后保存重开的几何和 PCell 身份；不能只用 `copy_tree` 的结果代替原生剪贴板流程。
+- 运行 `tests/verify_cross_gds_copy.py` 验证无恢复属性的旧上下文、改名 cell、失效声明的静态 fallback、实例属性、真实 GUI 深复制到空 Layout，以及复制后保存重开的几何和 PCell 身份。用户打开原文件并从 Cells 树复制指定子 cell 时，必须直接验证原文件和该树节点，覆盖先 File/New Layout 再切回源文件复制的顺序；另存修复版、顶层实例复制及 `copy_tree` 均不能代替这一流程。
 
 ## Interactive DRC
 
@@ -50,7 +51,7 @@
 
 ## Runtime Reload
 
-- `JNU_MWP_SOI_PDK V1.8 → Reload JNU PDK` 在当前菜单回调退出后异步执行，避免重建菜单时销毁正在触发的 Action。待触发的单次 timer 只能由 `reload_pdk` 模块级引用保存，禁止写入或读取 `MainWindow` 的动态 Python 属性；重复触发必须合并为一次。
+- `JNU_MWP_SOI_PDK V1.9 → Reload JNU PDK` 在当前菜单回调退出后异步执行，避免重建菜单时销毁正在触发的 Action。待触发的单次 timer 只能由 `reload_pdk` 模块级引用保存，禁止写入或读取 `MainWindow` 的动态 Python 属性；重复触发必须合并为一次。
 - 清除 `JNU_MWP_pcells`、`JNU_MWP_tools` 与 `JNULib` 模块缓存后从磁盘重新导入；同名公开库只保留一个，并调用 `Library.refresh()` 更新全部 client layout。
 - 对已打开 layout 中现存的 `Waveguide` / `Composite_Waveguide` 以同名新声明调用 `register_pcell`，保持 PCell ID 不变，再调用 `Layout.refresh()` 重算已有 variant。
 - 菜单宏注册必须幂等：删除全部已知 action item、替换主窗口持久 action 列表后再插入。重建前以稳定 action ID 保存当前 `pya.Action.shortcut`；若当前值已为空，则从 `Application.get_config("key-bindings")` 中相同完整菜单路径恢复，且不得改写用户配置。成功只写短暂状态栏消息，失败弹窗且不得删除用户布局对象。
@@ -111,8 +112,10 @@
 - `core/fixed_gds.py` 保留对用户目录 `jnu_private/JNU_MWP_gds` 的读取兼容，避免既有授权数据失效；缺失时使用源码或完整离线包内的固定 GDS。维护代码时不删除用户已安装的数据。
 - 白盒规范源为独立 `JNU-MWP-SOI-Library/JNU_MWP_gds/`；公开 PDK 的 `pymacros/JNU_MWP_gds/` 不跟踪任何 GDS。私有仓库克隆仍位于 `jnu_private`，安装器用同步记录保护用户手动修改并将授权 GDS 放到原目录顶层。同步前仍可从 `jnu_private/JNU_MWP_gds/` 加载。不要创建顶层 `gds/` 或独立 `JNU_MWP_ebeam_gds/`。
 - 移动或清理固定 GDS 后，用 `rg` 检查 loader、打包脚本、README 和辅助脚本，确保不存在指向旧 `gds/` 的路径；同时验证 `JNULib.py` 仍指向 `pymacros/JNU_MWP_gds/`。
-- 固定白盒修改、接收用户已有更新或拉取 Library 更新后，先确认完整白盒规范源及其提交，再运行 `release/sync_blackboxes_from_library.py --source <Library/JNU_MWP_gds>` 重建全部对应黑盒（当前 31 份）。读取同步摘要的总数、更新数、移除数及错误；有变化时核对变化器件的名称、原位 PinRec、0.2 µm Si 直段、998/0 矩形主体及 DevRec，再提交黑盒到指定 PDK 分支。更新和移除均为零时不创建空提交，也不为重复确认另建哈希清单。PCell 不进入黑盒库；发布包只复制已同步黑盒，排除白盒目录与 `JNULib.py`。
-- 若系统 Python 没有 `pya`，用 KLayout 自带 Python 运行同步脚本：先设置环境变量 `JNU_WHITEBOX_GDS_DIR=<Library/JNU_MWP_gds>`，再执行 `klayout_app.exe -z -e -r <PDK/pymacros/JNU_MWP_tools/release/sync_blackboxes_from_library.py>`；必须在输出中确认同步数量为 31 且没有 `ERROR:`，因为部分 KLayout 版本的宏错误不会使进程返回非零退出码。
+- 启动时在后台分别检查公开 PDK 和已安装白盒的远端 `main`。白盒用用户现有 Git 凭据非交互检查；无本地白盒克隆、未授权或离线时不提示。确认更新后启动现有白盒安装器。
+- 本机发布白盒时使用仓库根目录 `python tools/publish_soi_blackboxes.py --publish --push-library <私有 Library 克隆>`：在干净的 Library `main` 上先推送已提交的白盒，再从远端 `main` 的临时克隆生成和重读验证黑盒。只有变化的黑盒 GDS 会提交到唯一的现有 PDK 开发分支，目标缺失、不唯一或已变化则停止；不提交白盒，不新建分支。已推送白盒时可只用 `--publish` 同步黑盒，省略参数则仅检查。复用本机 Git 和 GitHub CLI 的授权，不依赖云工作流或定时任务。
+- 固定白盒修改、接收用户已有更新或拉取 Library 更新后，先确认完整白盒规范源及其提交，再运行 `release/sync_blackboxes_from_library.py --source <Library/JNU_MWP_gds>` 重建全部对应黑盒（当前 32 份）。读取同步摘要的总数、更新数、移除数及错误；有变化时核对变化器件的名称、原位 PinRec、0.2 µm Si 直段、998/0 矩形主体及 DevRec，再提交黑盒到指定 PDK 分支。更新和移除均为零时不创建空提交，也不为重复确认另建哈希清单。PCell 不进入黑盒库；发布包只复制已同步黑盒，排除白盒目录与 `JNULib.py`。
+- 若系统 Python 没有 `pya`，用 KLayout 自带 Python 运行同步脚本：先设置环境变量 `JNU_WHITEBOX_GDS_DIR=<Library/JNU_MWP_gds>`，再执行 `klayout_app.exe -z -e -r <PDK/pymacros/JNU_MWP_tools/release/sync_blackboxes_from_library.py>`；必须在输出中确认同步数量为 32 且没有 `ERROR:`，因为部分 KLayout 版本的宏错误不会使进程返回非零退出码。
 - Technology 使用 `JNU_MWP_SOI_PDK`，菜单使用同名加发行版本；统一由 `core/pdk_identity.py` 加载技术并迁移旧选择。Salt、安装目录、skill 路径和发布包目录仍为 `JNU_MWP_PDK`，菜单内部路径和 Library 名称保持稳定。
 - 只有执行黑盒打包流程时，才同步修改 `pymacros/README.md` 和 PDK 使用说明；普通开发、维护和单独文档请求不改写这两类文档。若打包流程确需更新 `pymacros/README.md`，保持完整中文章节在前、完整英文章节在后。
 
@@ -162,4 +165,4 @@
 - 用 KLayout 批处理运行 `tests/verify_ebeam_library_bridge_regression.py`，确认五个 EBeam Library 都已绑定到 `JNU_MWP_SOI_PDK`、包含 EBeam 器件数据、重复桥接不会创建重复库，并且无需改动原 EBeam Technology。
 - 验收 GUI 实时派生值、三种命名及 `__002/__003` 冲突后缀；GDS 重读后名称和本地 PCell 身份必须保持。
 - 生成黑盒包并检查禁止项；对 canonical skill 运行 UTF-8 `quick_validate.py`，再运行联接脚本 `check`。
-- 检查公开 Git 的 `pymacros/JNU_MWP_gds/` 无任何被跟踪的 `.gds`；独立 Library 当前有 31 份授权白盒，安装后原目录应能加载全部固定器件。确认顶层旧 `gds/` 和独立 `JNU_MWP_ebeam_gds/` 不存在。
+- 检查公开 Git 的 `pymacros/JNU_MWP_gds/` 无任何被跟踪的 `.gds`；独立 Library 当前有 32 份授权白盒，安装后原目录应能加载全部固定器件。确认顶层旧 `gds/` 和独立 `JNU_MWP_ebeam_gds/` 不存在。

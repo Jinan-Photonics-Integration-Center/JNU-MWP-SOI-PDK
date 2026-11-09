@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """验证仓库自带黑盒数据可独立加载，且没有泄露内部物理版图。"""
 
+from collections import Counter
 from pathlib import Path
 import sys
 
@@ -13,42 +14,27 @@ import pya
 PYMACROS = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PYMACROS))
 import JNU_MWP_blackbox as blackbox
+from JNU_MWP_tools.release.blackbox_validation import verify_port_straights
 
 
-def verify_port_straights(cell, layout):
-    """独立核对四向直段、原连接端面和黑盒主体，拒绝多余的内部 Si。"""
-    bodies = list(cell.shapes(layout.layer(998, 0)).each())
-    assert len(bodies) == 1 and bodies[0].is_box(), cell.name
-    body = bodies[0].box
-    assert not body.empty(), cell.name
-    si = list(cell.shapes(layout.layer(1, 0)).each())
-    paths = [s.path for s in cell.shapes(layout.layer(1, 10)).each() if s.is_path()]
-    assert len(si) == len(paths) > 0 and all(s.is_box() for s in si), cell.name
-    remaining = [s.box for s in si]
-    for path in paths:
-        a, b = list(path.each_point())
-        x, y = (a.x + b.x) // 2, (a.y + b.y) // 2
-        dx, dy = b.x - a.x, b.y - a.y
-        half = path.width // 2
-        other_half = path.width - half
-        if dx > 0:
-            match = next((s for s in remaining if s.right == x and s.bottom == y - half
-                          and s.top == y + other_half and s.left == body.right), None)
-        elif dx < 0:
-            match = next((s for s in remaining if s.left == x and s.bottom == y - half
-                          and s.top == y + other_half and s.right == body.left), None)
-        elif dy > 0:
-            match = next((s for s in remaining if s.top == y and s.left == x - half
-                          and s.right == x + other_half and s.bottom == body.top), None)
-        else:
-            match = next((s for s in remaining if s.bottom == y and s.left == x - half
-                          and s.right == x + other_half and s.top == body.bottom), None)
-        assert match is not None, (cell.name, str(path))
-        length = match.width() if dx else match.height()
-        assert abs(length * layout.dbu - 0.2) < 1e-9, cell.name
-        assert (pya.Region(match) & pya.Region(body)).is_empty(), cell.name
-        remaining.remove(match)
-    assert not remaining, cell.name
+# 白盒里确有标注的器件；没有源标注的器件不推断偏振和比例。
+PORT_ANNOTATIONS = {
+    "1310_90/10_splitter": {"100%": "opt1", "10%": "opt2", "90%": "opt3"},
+    "1310_PBS": {"In": "opt1", "TE": "opt3", "TM": "opt4"},
+    "1310_PR": {"In": "opt1", "out": "opt2"},
+    "1310_TE_polarizer": {"In": "opt1", "Out": "opt2"},
+    "1310_TM_polarizer": {"In": "opt1", "Out": "opt2"},
+    "1550_90/10_splitter": {"In": "opt1", "10%": "opt2", "90%": "opt3"},
+    "1550_95/5_splitter": {"In": "opt1", "5%": "opt2", "95%": "opt3"},
+    "1550_PBS": {"TE": "opt1", "TM": "opt2", "In": "opt3"},
+    "1550_TE_polarizer": {"TE+TM": "opt1", "TE": "opt2"},
+}
+
+
+def _port_annotation_texts(cell):
+    layout = cell.layout()
+    return [s.text for s in cell.shapes(layout.layer(10, 0)).each()
+            if s.is_text() and s.text.string != cell.name + " (black box)"]
 
 
 def main():
@@ -80,10 +66,10 @@ def main():
                     assert (info.layer, info.datatype) in {(1, 0), (1, 10), (68, 0), (10, 0), (998, 0)}
                 if cell.name not in names:
                     assert not shapes or (info.layer, info.datatype) == (10, 0)
-    assert len(names) == 31, "黑盒器件数应为 31 个：%d" % len(names)
+    assert len(names) == 32, "黑盒器件数应为 32 个：%d" % len(names)
     assert {
         "1550_crossing4", "1310_500nm_TE_terminator", "1550_500nm_TE_terminator",
-        "1310_Ybranch", "1550_Ybranch",
+        "1310_Ybranch", "1550_Ybranch", "1550_PR",
     } <= names
     assert not any(name.startswith("Pcell_") for name in names)
     assert "1550_2um_TE_terminator" in names
@@ -106,6 +92,31 @@ def main():
         verify_port_straights(instance_cell, target)
         disk = pya.Layout()
         disk.read(str(source_files[name]))
+        labels = _port_annotation_texts(disk.top_cell())
+        expected = PORT_ANNOTATIONS.get(name, {})
+        assert Counter(t.string for t in labels) == Counter(expected.keys()), name
+        pins = {s.text.string: s.text for s in disk.top_cell().shapes(disk.layer(1, 10)).each()
+                if s.is_text()}
+        body = disk.top_cell().bbox(disk.layer(998, 0))
+        for label in labels:
+            pin = pins[expected[label.string]]
+            assert abs(pin.y - label.y) * disk.dbu <= 0.25, (name, label, pin)
+            assert 0 < abs(pin.x - label.x) * disk.dbu <= 0.5, (name, label, pin)
+            # 预留完整字高及保守的字宽，避免仅校验文字锚点。
+            width = len(label.string) * label.size
+            left = label.halign == pya.Text.HAlignLeft
+            x0 = label.x if left else label.x - width
+            if label.valign == pya.Text.VAlignTop:
+                y0 = label.y - label.size
+            elif label.valign == pya.Text.VAlignBottom:
+                y0 = label.y
+            else:
+                y0 = label.y - label.size // 2
+            assert body.contains(pya.Point(x0, y0)), (name, label)
+            assert body.contains(pya.Point(x0 + width, y0 + label.size)), (name, label)
+        key = lambda t: (t.string, str(t.trans), t.size, t.halign, t.valign)
+        assert Counter(map(key, labels)) == Counter(map(key, _port_annotation_texts(registered))), name
+        assert Counter(map(key, labels)) == Counter(map(key, _port_annotation_texts(instance_cell))), name
         for layer in ((1, 0), (1, 10), (68, 0), (998, 0), (10, 0)):
             disk_region = pya.Region(disk.top_cell().begin_shapes_rec(disk.layer(*layer)))
             placed_region = pya.Region(instance_cell.begin_shapes_rec(target.layer(*layer)))

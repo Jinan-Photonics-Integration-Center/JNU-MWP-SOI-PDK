@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-07
+# 时间: 2026-11
 
 """回形针螺旋波导，含直波导与弯曲不同宽度的 Composite Waveguide PCell。
 
@@ -23,6 +23,7 @@ from .paperclip_spiral import (
     WG_LAYER_CHOICES,
     PIN_LAYER_CHOICES,
     TYPE3_OPT1_STRAIGHT_UM,
+    _classify_axis_segment,
     _choice_values,
     _coerce_bezier,
     _normalize_bend_type,
@@ -638,19 +639,6 @@ class PaperclipSpiralWithCompositeWaveguide(pya.PCellDeclarationHelper):
             5.0 * max(float(self.straight_width), float(self.bend_width)),
         )
 
-        def _round_dbu(val):
-            return int(round(val / dbu))
-
-        def _classify_segment(p1, p2):
-            """基于坐标严格判断线段方向：'h' = 水平, 'v' = 垂直, None = 非轴向。"""
-            x1, y1 = _round_dbu(p1.x), _round_dbu(p1.y)
-            x2, y2 = _round_dbu(p2.x), _round_dbu(p2.y)
-            if y1 == y2:
-                return 'h'
-            if x1 == x2:
-                return 'v'
-            return None
-
         segs = []
         start = 0
         prefix = []
@@ -670,7 +658,7 @@ class PaperclipSpiralWithCompositeWaveguide(pya.PCellDeclarationHelper):
 
             run_start = start
             while run_start < end - 1:
-                seg_type = _classify_segment(pts[run_start], pts[run_start + 1])
+                seg_type = _classify_axis_segment(pts[run_start], pts[run_start + 1], dbu)
                 if seg_type is None:
                     run_start += 1
                     continue
@@ -678,7 +666,7 @@ class PaperclipSpiralWithCompositeWaveguide(pya.PCellDeclarationHelper):
                 # 向后扩展同向线段
                 run_end = run_start + 1
                 while run_end < end and run_end + 1 < len(pts):
-                    next_type = _classify_segment(pts[run_end], pts[run_end + 1])
+                    next_type = _classify_axis_segment(pts[run_end], pts[run_end + 1], dbu)
                     if next_type != seg_type:
                         break
                     run_end += 1

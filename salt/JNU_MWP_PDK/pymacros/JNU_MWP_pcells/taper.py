@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-07
+# 时间: 2026-11
 
 """线性 Taper PCell。
 
@@ -12,22 +12,23 @@ Pin 长度 20 nm。
 
 import os
 import sys
-import math
-
 import pya
 
 try:
-    from .pcell_defaults import default_float, default_choice, default_bool
-    from .pcell_defaults import apply_saved_defaults_to_states, save_pcell_defaults
+    from .pcell_defaults import _state_value
 except ImportError:
     PCELL_DIR = os.path.dirname(os.path.abspath(__file__))
     if PCELL_DIR not in sys.path:
         sys.path.insert(0, PCELL_DIR)
-    from pcell_defaults import default_float, default_choice, default_bool
-    from pcell_defaults import apply_saved_defaults_to_states, save_pcell_defaults
+    from pcell_defaults import _state_value
+
+PYMACROS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PYMACROS_DIR not in sys.path:
+    sys.path.insert(0, PYMACROS_DIR)
+
+from JNU_MWP_tools.core import taper_defaults
 
 
-PCELL_NAME = "Taper"
 TEXT_LAYER = pya.LayerInfo(10, 0)
 PIN_LENGTH_UM = 0.02  # 端口总长, 单位 um
 
@@ -49,15 +50,12 @@ BUILTIN_DEFAULTS = {
     "port2_extension_length": 0.0,
     "wg_layer": "1/0",
     "pin_layer": "1/10",
+    "devrec_layer": "68/0",
 }
 
 WG_LAYER_CHOICES = (("1/0", "Si - waveguide layer (1/0)"), ("1/99", "Waveguide - raw path (1/99)"))
 PIN_LAYER_CHOICES = (("1/10", "PinRec - optical pin layer (1/10)"),)
 DEVREC_CHOICES = (("68/0", "DevRec (68/0)"),)
-
-
-def _choice_values(choices):
-    return tuple(v for v, _ in choices)
 
 
 def _layer_info_from_choice(value, fallback):
@@ -74,43 +72,44 @@ def _layer_info_from_choice(value, fallback):
 class Taper(pya.PCellDeclarationHelper):
     """线性 Taper PCell。"""
 
-    def __init__(self):
+    def __init__(self, use_last_parameters=False):
         super(Taper, self).__init__()
 
-        wg_layer_default = default_choice(PCELL_NAME, "wg_layer", "1/0", _choice_values(WG_LAYER_CHOICES))
-        pin_layer_default = default_choice(PCELL_NAME, "pin_layer", "1/10", _choice_values(PIN_LAYER_CHOICES))
+        defaults = dict(BUILTIN_DEFAULTS)
+        if use_last_parameters:
+            defaults.update(taper_defaults.load())
 
-        wg_param = self.param("wg_layer", self.TypeList, "Waveguide layer", default=wg_layer_default)
+        wg_param = self.param("wg_layer", self.TypeList, "Waveguide layer", default=defaults["wg_layer"])
         for v, l in WG_LAYER_CHOICES:
             wg_param.add_choice(l, v)
 
-        pin_param = self.param("pin_layer", self.TypeList, "Pin layer", default=pin_layer_default)
+        pin_param = self.param("pin_layer", self.TypeList, "Pin layer", default=defaults["pin_layer"])
         for v, l in PIN_LAYER_CHOICES:
             pin_param.add_choice(l, v)
 
-        devrec_param = self.param("devrec_layer", self.TypeList, "DevRec layer", default="68/0")
+        devrec_param = self.param("devrec_layer", self.TypeList, "DevRec layer", default=defaults["devrec_layer"])
         for v, l in DEVREC_CHOICES:
             devrec_param.add_choice(l, v)
 
         self.param("width1", self.TypeDouble, "Width at port 1", unit="um",
-                   default=default_float(PCELL_NAME, "width1", 0.5))
+                   default=defaults["width1"])
         self.param("width2", self.TypeDouble, "Width at port 2", unit="um",
-                   default=default_float(PCELL_NAME, "width2", 3.0))
+                   default=defaults["width2"])
         self.param("length", self.TypeDouble, "Taper length", unit="um",
-                   default=default_float(PCELL_NAME, "length", 50.0))
+                   default=defaults["length"])
         self.param(
             "port1_extension_length",
             self.TypeDouble,
             "Port 1 straight extension length",
             unit="um",
-            default=default_float(PCELL_NAME, "port1_extension_length", 0.0),
+            default=defaults["port1_extension_length"],
         )
         self.param(
             "port2_extension_length",
             self.TypeDouble,
             "Port 2 straight extension length",
             unit="um",
-            default=default_float(PCELL_NAME, "port2_extension_length", 0.0),
+            default=defaults["port2_extension_length"],
         )
 
     def display_text_impl(self):
@@ -134,7 +133,6 @@ class Taper(pya.PCellDeclarationHelper):
             float(self.port2_extension_length),
             0.0,
         )
-        save_pcell_defaults(self, PCELL_NAME, EDITABLE_PARAMETER_NAMES)
 
     def produce_impl(self):
         dbu = self.layout.dbu
@@ -242,11 +240,10 @@ class Taper(pya.PCellDeclarationHelper):
 
         self.cell.shapes(layer).insert(pya.Path([p1, p2], w))
 
-    def callback(self, layout, name, states):
-        return super(Taper, self).callback(layout, name, states)
-
     def callback_impl(self, name):
-        pass
+        if name in EDITABLE_PARAMETER_NAMES and self.name() == taper_defaults.PCELL_NAME:
+            values = {key: _state_value(getattr(self, key)) for key in EDITABLE_PARAMETER_NAMES}
+            taper_defaults.stage_property_edit(values)
 
 
 def taper_polygon_between(cell, layer, pt1, pt2, w1, w2, nx, ny):

@@ -44,7 +44,7 @@ def _ports(cell, layout):
 def _verify_source_ports(source_dir, blackbox_dir):
     mapping = dict(PUBLIC_EBEAM_CELLS)
     files = sorted(source_dir.glob("*.gds"))
-    assert len(files) == 31, len(files)
+    assert len(files) == 32, len(files)
     for path in files:
         source = pya.Layout()
         source.read(str(path))
@@ -74,7 +74,7 @@ def main():
     output = Path(os.environ["JNU_BLACKBOX_TEST_OUTPUT"])
     assert not output.exists(), "测试包目录必须为新目录"
     count, package, _ = package_blackbox_pdk(output)
-    assert count == 31, count
+    assert count == 32, count
     macros = package / "pymacros"
     assert not (macros / "JNU_MWP_pcells").exists()
     assert not (macros / "JNU_MWP_gds").exists()
@@ -95,16 +95,16 @@ def main():
             si = list(cell.shapes(layout.layer(1, 0)).each())
             ports = [s for s in cell.shapes(layout.layer(1, 10)).each() if s.is_path()]
             assert len(si) == len(ports) > 0 and all(s.is_box() for s in si), cell.name
-    assert len(names) == 31, len(names)
+    assert len(names) == 32, len(names)
     assert {"1550_crossing4", "1310_500nm_TE_terminator", "1550_500nm_TE_terminator",
-            "1310_Ybranch", "1550_Ybranch"} <= names
+            "1310_Ybranch", "1550_Ybranch", "1550_PR"} <= names
     assert not any(name.startswith("Pcell_") for name in names)
     assert not {"ebeam_crossing4", "ebeam_terminator_te1310", "ebeam_terminator_te1550",
                 "ebeam_y_1310", "ebeam_y_1550"} & names
     if os.environ.get("JNU_WHITEBOX_GDS_DIR"):
         _verify_source_ports(Path(os.environ["JNU_WHITEBOX_GDS_DIR"]),
                              macros / "JNU_MWP_blackbox_gds")
-    print("PASS: 31 fixed blackbox cells in standalone package; no whitebox GDS or PCell source.")
+    print("PASS: 32 fixed blackbox cells in standalone package; no whitebox GDS or PCell source.")
 
 
 if __name__ == "__main__":
