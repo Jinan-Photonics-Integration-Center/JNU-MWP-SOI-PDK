@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 # 生成可分发的 JNU_MWP_PDK 黑盒版本。
 # 输出目录默认在桌面：JNU_MWP_PDK_blackbox_v1.1。
 # 发布包同时包含 salt/JNU_MWP_PDK 和 tech/JNU_MWP_PDK，便于 KLayout 原生识别 Technology。
 
 import argparse
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -279,6 +280,32 @@ def _copy_pin_layer(src_cell, dst_cell, src_layout, dst_layout):
         iterator.next()
 
 
+def _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout):
+    """只复制偏振及分光器件的端口说明，排除作者、工艺备注和内部图形。"""
+    if not re.search(r"(?:^|_)(?:PBS|PSR|PR|polarizer|splitter|MMI|Ybranch|DC)(?:_|$)",
+                     dst_cell.name, re.IGNORECASE):
+        return
+    source_index = src_layout.find_layer(TEXT_LAYER)
+    if source_index is None or source_index < 0:
+        return
+
+    iterator = src_cell.begin_shapes_rec(source_index)
+    while not iterator.at_end():
+        shape = iterator.shape()
+        if shape.is_text():
+            text = shape.text.transformed(iterator.itrans())
+            if re.fullmatch(r"(?:in(?:put)?|out(?:put)?|(?:TE|TM)\d*(?:\s*\+\s*(?:TE|TM)\d*)?|\d+(?:\.\d+)?\s*%)",
+                            text.string.strip(), re.IGNORECASE):
+                disp = _scale_point(text.trans.disp, src_layout.dbu, dst_layout.dbu)
+                transform = pya.Trans(text.trans.angle, text.trans.is_mirror(), disp.x, disp.y)
+                scaled = pya.Text(text.string, transform)
+                scaled.size = _scale_length(text.size, src_layout.dbu, dst_layout.dbu)
+                scaled.halign = text.halign
+                scaled.valign = text.valign
+                dst_cell.shapes(dst_layout.layer(TEXT_LAYER)).insert(scaled)
+        iterator.next()
+
+
 def _draw_port_straights(cell, footprint):
     """按原端口向内绘制直段，主体边界退到直段内端，连接坐标保持不变。"""
     layout = cell.layout()
@@ -345,6 +372,7 @@ def _draw_blackbox_cell(src_cell, src_layout, dst_layout, target_name=None):
 
     body = _draw_port_straights(dst_cell, si_bbox)
     dst_cell.shapes(devrec_index).insert(devrec_bbox)
+    _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout)
 
     label_text = dst_cell.name + " (black box)"
     if not _insert_basic_text(dst_cell, body, dst_layout.dbu, label_text):

@@ -4,6 +4,7 @@
 
 """验证仓库自带黑盒数据可独立加载，且没有泄露内部物理版图。"""
 
+from collections import Counter
 from pathlib import Path
 import sys
 
@@ -14,6 +15,26 @@ PYMACROS = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PYMACROS))
 import JNU_MWP_blackbox as blackbox
 from JNU_MWP_tools.release.blackbox_validation import verify_port_straights
+
+
+# 白盒里确有标注的器件；没有源标注的器件不推断偏振和比例。
+PORT_ANNOTATIONS = {
+    "1310_90/10_splitter": ("100%", "10%", "90%"),
+    "1310_PBS": ("In", "TE", "TM"),
+    "1310_PR": ("In", "out"),
+    "1310_TE_polarizer": ("In", "Out"),
+    "1310_TM_polarizer": ("In", "Out"),
+    "1550_90/10_splitter": ("In", "10%", "90%"),
+    "1550_95/5_splitter": ("In", "5%", "95%"),
+    "1550_PBS": ("In", "TE", "TM"),
+    "1550_TE_polarizer": ("TE+TM", "TE"),
+}
+
+
+def _port_annotation_texts(cell):
+    layout = cell.layout()
+    return [s.text for s in cell.shapes(layout.layer(10, 0)).each()
+            if s.is_text() and s.text.string != cell.name + " (black box)"]
 
 
 def main():
@@ -71,6 +92,11 @@ def main():
         verify_port_straights(instance_cell, target)
         disk = pya.Layout()
         disk.read(str(source_files[name]))
+        labels = _port_annotation_texts(disk.top_cell())
+        assert Counter(t.string for t in labels) == Counter(PORT_ANNOTATIONS.get(name, ())), name
+        key = lambda t: (t.string, str(t.trans), t.size, t.halign, t.valign)
+        assert Counter(map(key, labels)) == Counter(map(key, _port_annotation_texts(registered))), name
+        assert Counter(map(key, labels)) == Counter(map(key, _port_annotation_texts(instance_cell))), name
         for layer in ((1, 0), (1, 10), (68, 0), (998, 0), (10, 0)):
             disk_region = pya.Region(disk.top_cell().begin_shapes_rec(disk.layer(*layer)))
             placed_region = pya.Region(instance_cell.begin_shapes_rec(target.layer(*layer)))

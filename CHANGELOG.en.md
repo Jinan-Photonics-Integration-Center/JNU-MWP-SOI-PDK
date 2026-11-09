@@ -9,6 +9,10 @@
 
 Updates are listed newest first. Historical dates follow Git commit dates in Beijing time (UTC+8). Related changes on the same day are grouped; the full commit history shows the content and timestamp of every commit.
 
+## 2026-11-09 · Blackbox optical port annotations
+
+- Blackboxes for SOI polarization devices and splitters preserve the source Text (10/0) annotations for inputs, outputs, polarization and splitting ratios at their original locations. PinRec names and port geometry are unchanged.
+
 ## 2026-11-07 · Whitebox update prompts and blackbox synchronization
 
 - At startup, KLayout checks for whitebox updates only when the library is installed and accessible. The prompt opens the existing updater; missing access or connectivity is ignored.
