@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """在不重启 KLayout 的情况下重新加载 JNU_MWP_PDK 运行时代码。"""
 
@@ -110,6 +110,9 @@ def _open_layouts(main_window):
 def _purge_runtime_modules():
     """移除 JNU 运行时模块，使后续 import 从磁盘重新执行。"""
 
+    taper_defaults = sys.modules.get("JNU_MWP_tools.core.taper_defaults")
+    if taper_defaults is not None:
+        taper_defaults.uninstall()
     prefixes = ("JNU_MWP_pcells", "JNU_MWP_tools", "JNU_MWP_blackbox")
     removed = []
     for module_name in sorted(tuple(sys.modules), key=len, reverse=True):

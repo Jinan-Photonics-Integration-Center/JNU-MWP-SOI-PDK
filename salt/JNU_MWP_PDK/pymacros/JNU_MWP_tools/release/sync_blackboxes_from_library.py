@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """从独立 Library 仓库的全部固定白盒 GDS 同步公开黑盒。"""
 
@@ -18,6 +18,7 @@ if str(PYMACROS) not in sys.path:
     sys.path.insert(0, str(PYMACROS))
 
 from JNU_MWP_tools.core.public_ebeam_cells import PUBLIC_EBEAM_CELL_NAMES
+from JNU_MWP_tools.release.blackbox_validation import verify_blackbox_gds
 from JNU_MWP_tools.release.package_blackbox_pdk import LIBRARY_DBU, _draw_blackbox_cell
 
 
@@ -59,9 +60,9 @@ def sync_blackboxes(source, output=PYMACROS / "JNU_MWP_blackbox_gds"):
         raise FileNotFoundError("白盒源目录或黑盒输出目录不存在：%s / %s" % (source, output))
     source_files = sorted(path for path in source.glob("*.gds")
                           if not path.stem.startswith("Pcell_"))
-    if len(source_files) < 31 or not all((source / (name + ".gds")).is_file()
+    if len(source_files) < 32 or not all((source / (name + ".gds")).is_file()
                                            for name in SOURCE_NAMES):
-        raise RuntimeError("独立器件库白盒不完整，至少需要现有 31 个 GDS（含五个 EBeam）：%s" % source)
+        raise RuntimeError("独立器件库白盒不完整，至少需要现有 32 个 GDS（含五个 EBeam）：%s" % source)
 
     with tempfile.TemporaryDirectory(prefix="jnu-blackbox-sync-", dir=output.parent) as temporary:
         staged = Path(temporary)
@@ -85,8 +86,9 @@ def sync_blackboxes(source, output=PYMACROS / "JNU_MWP_blackbox_gds"):
             target_names.add(target_name)
             output_names.add(output_name)
             _write_blackbox(cell, layout, staged / output_name, target_name=target_name)
-        if len(target_names) < 31:
-            raise RuntimeError("独立器件库中固定白盒不足 31 个：%s" % source)
+            verify_blackbox_gds(staged / output_name, target_name)
+        if len(target_names) < 32:
+            raise RuntimeError("独立器件库中固定白盒不足 32 个：%s" % source)
 
         changed = []
         for path in sorted(staged.glob("*.gds")):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-08
+# 时间: 2026-11
 
 """回形针螺旋波导 PCell。"""
 
@@ -45,6 +45,7 @@ from JNU_MWP_tools.core.path_geometry import centerline_path_region
 # 从 bend_90deg 导入公共弯曲点生成函数（局部坐标系）
 from .bend_90deg import (
     PORT_STRAIGHT_UM,
+    _normalize_bend_type,
     corner_points,
 )
 
@@ -167,15 +168,15 @@ def _choice_values(choices):
     return tuple(value for value, _label in choices)
 
 
-def _normalize_bend_type(value):
-    """把弯曲类型归一到当前支持的标准名称。"""
-
-    text = str(value).strip().lower()
-    if text == "bezier":
-        return "Bezier"
-    if text == "euler":
-        return "Euler"
-    return "Circular"
+def _classify_axis_segment(p1, p2, dbu):
+    """在 DBU 网格上判断线段是否严格水平或垂直。"""
+    x1, y1 = int(round(p1.x / dbu)), int(round(p1.y / dbu))
+    x2, y2 = int(round(p2.x / dbu)), int(round(p2.y / dbu))
+    if y1 == y2:
+        return "h"
+    if x1 == x2:
+        return "v"
+    return None
 
 
 def _normalize_ports_type(value):
@@ -1460,27 +1461,13 @@ class PaperclipSpiral(pya.PCellDeclarationHelper):
         )
         safe_margin = max(10.0, 0.25 * bend_radius, 5.0 * wg_width)
 
-        def _round_dbu(val):
-            """将 um 值舍入到 DBU 网格。"""
-            return int(round(val / dbu))
-
-        def _classify_segment(p1, p2):
-            """基于坐标严格判断线段方向：'h' = 水平, 'v' = 垂直, None = 非轴向。"""
-            x1, y1 = _round_dbu(p1.x), _round_dbu(p1.y)
-            x2, y2 = _round_dbu(p2.x), _round_dbu(p2.y)
-            if y1 == y2:
-                return 'h'
-            if x1 == x2:
-                return 'v'
-            return None
-
         best_run_start = None
         best_run_end = None
         best_is_h = None
 
         run_start = start_idx
         while run_start < end_idx - 1:
-            seg_type = _classify_segment(points[run_start], points[run_start + 1])
+            seg_type = _classify_axis_segment(points[run_start], points[run_start + 1], dbu)
             if seg_type is None:
                 run_start += 1
                 continue
@@ -1488,7 +1475,7 @@ class PaperclipSpiral(pya.PCellDeclarationHelper):
             # 向后扩展同向线段
             run_end = run_start + 1
             while run_end < end_idx and run_end + 1 < len(points):
-                next_type = _classify_segment(points[run_end], points[run_end + 1])
+                next_type = _classify_axis_segment(points[run_end], points[run_end + 1], dbu)
                 if next_type != seg_type:
                     break
                 run_end += 1

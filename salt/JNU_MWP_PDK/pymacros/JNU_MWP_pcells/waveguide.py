@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-09
+# 时间: 2026-11
 
 # JNU_MWP_PDK 的参数化 Waveguide PCell。
 # 该 PCell 不依赖 WAVEGUIDES.xml，而是直接使用 path、width、radius、bend_type 参数生成波导。
@@ -30,22 +30,11 @@ from JNU_MWP_tools.core.bend_curvature import bezier_Rmax_Rmin, euler_Reff
 from JNU_MWP_tools.core.path_geometry import insert_centerline_polygons
 from JNU_MWP_tools.core.waveguide_variant_names import name_waveguide_variant
 
-# 确保 pymacros 目录在 sys.path 中，以便从 bend_90deg 导入公共弯曲点生成函数
-_PYMACROS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _PYMACROS_DIR not in sys.path:
-    sys.path.insert(0, _PYMACROS_DIR)
-
 from JNU_MWP_pcells.bend_90deg import (
     _normalize_bend_type,
     corner_points,
 )
 
-
-SI_LAYER = pya.LayerInfo(1, 0)          # Si 波导实体层。
-WG_LAYER = pya.LayerInfo(1, 99)         # Waveguide 引导路径层。
-PIN_LAYER = pya.LayerInfo(1, 10)        # PinRec 端口识别层。
-DEVREC_LAYER = pya.LayerInfo(68, 0)     # DevRec 器件识别层。
-TEXT_LAYER = pya.LayerInfo(10, 0)       # Text 文字层。
 
 PCELL_NAME = "Waveguide"
 SI_LAYER = pya.LayerInfo(1, 0)       # Si 波导实体层。

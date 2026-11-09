@@ -32,14 +32,14 @@ def _probe():
 
     app = pya.Application.instance()
     window = app.main_window()
-    assert MENU_TITLE == "JNU_MWP_SOI_PDK V1.8"
+    assert MENU_TITLE == "JNU_MWP_SOI_PDK V1.9"
     assert pya.Technology.has_technology(TECHNOLOGY_NAME)
     assert not pya.Technology.has_technology(LEGACY_TECHNOLOGY_NAME)
     assert app.get_config("initial-technology") == TECHNOLOGY_NAME
     technology = pya.Technology.technology_by_name(TECHNOLOGY_NAME)
     assert Path(technology.eff_layer_properties_file()).resolve() == (package / "layers.lyp").resolve()
     black = pya.Library.library_by_name("JNULib_BlackBox")
-    assert black and len(list(black.layout().each_top_cell())) == 31
+    assert black and len(list(black.layout().each_top_cell())) == 32
     assert TECHNOLOGY_NAME in black.description
     white = pya.Library.library_by_name("JNULib")
     black_only = os.environ["JNU_IDENTITY_MODE"] == "black"

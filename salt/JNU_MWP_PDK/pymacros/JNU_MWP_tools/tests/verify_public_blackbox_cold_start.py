@@ -21,12 +21,12 @@ def _probe():
     assert not list(black.layout().pcell_names())
     names = {
         "1550_crossing4", "1310_500nm_TE_terminator", "1550_500nm_TE_terminator",
-        "1310_Ybranch", "1550_Ybranch",
+        "1310_Ybranch", "1550_Ybranch", "1550_PR",
     }
     for old_name in ("ebeam_crossing4", "ebeam_terminator_te1310",
                      "ebeam_terminator_te1550", "ebeam_y_1310", "ebeam_y_1550"):
         assert black.layout().cell(old_name) is None
-    assert len(list(black.layout().each_top_cell())) == 31
+    assert len(list(black.layout().each_top_cell())) == 32
     assert black.layout().cell("Pcell_Waveguide_Bump") is None
     for name in names:
         layout = pya.Layout()
@@ -34,7 +34,7 @@ def _probe():
         assert cell and not cell.is_pcell_variant()
         assert not cell.bbox(layout.layer(1, 0)).empty()
     Path(os.environ["JNU_BLACKBOX_COLD_REPORT"]).write_text(
-        json.dumps({"count": 31, "new_devices": sorted(names), "ebeam_installed": False},
+        json.dumps({"count": 32, "new_devices": sorted(names), "ebeam_installed": False},
                    indent=2), encoding="utf-8")
     print("JNU_BLACKBOX_COLD_START_OK")
 

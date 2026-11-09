@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-07
+# 时间: 2026-11
 
 # JNU_MWP_PDK 的 S 弯波导 PCell。
 # 曲线采样、曲率计算和波导边界均在本模块内完成，保证 JNU 工具可以独立运行。
@@ -12,12 +12,12 @@ import sys
 import pya
 
 try:
-    from .pcell_defaults import default_choice, default_float, default_int, save_pcell_defaults
+    from .pcell_defaults import default_choice, default_float, default_int, save_pcell_defaults, _set_state_value as _write_state_value
 except ImportError:
     PCELL_DIR = os.path.dirname(os.path.abspath(__file__))
     if PCELL_DIR not in sys.path:
         sys.path.insert(0, PCELL_DIR)
-    from pcell_defaults import default_choice, default_float, default_int, save_pcell_defaults
+    from pcell_defaults import default_choice, default_float, default_int, save_pcell_defaults, _set_state_value as _write_state_value
 
 # 弯曲工具模块位于 tools 目录（在 JNU_MWP_PDK 根目录下）
 PYMACROS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -685,12 +685,7 @@ class SBendWaveguide(pya.PCellDeclarationHelper):
 
     def _set_state_value(self, state, value):
         """写入 GUI 参数状态，不同 KLayout 版本失败时静默跳过。"""
-
-        try:
-            state.value = value
-            return True
-        except Exception:
-            return False
+        return _write_state_value(state, value)
 
     def _numeric_state_value(self, state, default):
         """从 GUI 参数状态对象读取浮点值，失败时使用默认值。"""

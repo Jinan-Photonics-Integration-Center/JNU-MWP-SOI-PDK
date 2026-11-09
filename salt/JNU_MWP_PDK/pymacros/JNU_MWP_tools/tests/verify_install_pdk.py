@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """在临时 Git 仓库与 KLayout GUI 中验证安装、更新、保护及后台任务。"""
 
@@ -71,7 +71,7 @@ def seed(path, private=False):
     git(path, "commit", "-m", "Initial fixture")
 
 
-def main():
+def verify_git_install():
     root = PYMACROS.parents[2]
     macro = root / "Install_JNU_PDK.lym"
     if macro.exists():
@@ -135,7 +135,10 @@ def main():
         git(checkout, "config", "user.email", "installer@example.invalid")
         git(checkout, "commit", "--allow-empty", "-m", "Unpublished change")
         reject(lambda: installer.update_public(home), "未发布提交")
+        assert installer.probe_private_update(home) is None, "未安装白盒不提示"
         installer.install_private(home)
+        private_checkout = home / "jnu_private"
+        assert installer.probe_private_update(home) is None, "白盒已是最新版本"
         assert (home / "jnu_private/JNU_MWP_gds/test.gds").is_file()
         assert (checkout / installer.PDK_RELATIVE /
                 "pymacros/JNU_MWP_gds/ebeam_crossing4.gds").is_file()
@@ -149,7 +152,18 @@ def main():
         (private / "JNU_MWP_gds/test.gds").unlink()
         git(private, "add", "-A")
         git(private, "commit", "-m", "Replace fixture GDS")
+        expected = (git(private_checkout, "rev-parse", "HEAD"), git(private, "rev-parse", "HEAD"))
+        assert installer.probe_private_update(home) == expected, "PDK 本机分支状态不影响白盒检查"
+        assert git(private_checkout, "rev-parse", "HEAD") == expected[0], "探测不得拉取或改动本机白盒"
+        unavailable = str(directory / "missing-private")
+        git(private_checkout, "remote", "set-url", "origin", unavailable)
+        assert installer.probe_private_update(home) is None, "拒绝不属于白盒仓库的 origin"
+        installer.PRIVATE_URL = unavailable
+        assert installer.probe_private_update(home) is None, "无法连接白盒时静默跳过"
+        installer.PRIVATE_URL = str(private)
+        git(private_checkout, "remote", "set-url", "origin", str(private))
         installer.install_private(home)
+        assert installer.probe_private_update(home) is None
         assert not synced.exists(), "已删除的受管 GDS 不应留在原白盒目录"
         synced_new = synced.with_name("new.gds")
         assert synced_new.is_file()
@@ -178,6 +192,7 @@ def main():
         else:
             linked.unlink()
 
+def verify_gui():
     app = pya.Application.instance()
     installer.install_public = lambda home, notify: (notify("fixture progress") or "fixture complete")
     dialog = installer.show_installer(execute=False, auto_start=True)
@@ -201,7 +216,8 @@ def main():
         delattr(builtins, startup_update._SESSION_KEY)
     prompted = []
     startup_update.probe_main_update = lambda _home: ("a" * 40, "b" * 40)
-    startup_update._confirm_update = lambda _window, revisions: prompted.append(revisions)
+    startup_update.probe_private_update = lambda _home: ("c" * 40, "d" * 40)
+    startup_update._confirm_update = lambda _window, revisions, mode: prompted.append((mode, revisions))
     menu = pya.Macro(str(PYMACROS / "JNU_MWP_PDK_Menu.lym"))
     menu.run()
     assert not startup_update.schedule_startup_update_check(), "同一进程只应检查一次"
@@ -209,13 +225,19 @@ def main():
     while not prompted and time.monotonic() < deadline:
         app.process_events()
         time.sleep(0.02)
-    assert prompted == [("a" * 40, "b" * 40)], "后台结果应转交 GUI 主线程"
+    expected_prompts = [("update", ("a" * 40, "b" * 40)), ("private", ("c" * 40, "d" * 40))]
+    assert prompted == expected_prompts, "两个仓库的更新结果应独立转交 GUI 主线程"
 
     menu.run()
-    assert prompted == [("a" * 40, "b" * 40)], "重载菜单不得重复提示"
+    assert prompted == expected_prompts, "重载菜单不得重复提示"
     actions = app.main_window()._jnu_menu_actions_by_id
     assert "jnu_action_update_pdk" in actions
     assert "jnu_action_install_private" in actions
+
+
+def main():
+    verify_git_install()
+    verify_gui()
     print("PASS: install/update, startup branch/offline guards, one-click GUI worker, menu reload", flush=True)
 
 

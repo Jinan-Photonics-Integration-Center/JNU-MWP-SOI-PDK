@@ -5,9 +5,31 @@
 
 # Changelog
 
-[Back to README](README.en.md) · [Full commit history](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-PDK/commits/JNU_MWP_PDK_V1.8/)
+[Back to README](README.en.md) · [Full commit history](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-PDK/commits/JNU_MWP_PDK_V1.9/)
 
 Updates are listed newest first. Historical dates follow Git commit dates in Beijing time (UTC+8). Related changes on the same day are grouped; the full commit history shows the content and timestamp of every commit.
+
+## 2026-11-09 · Blackbox optical port annotations and 1550 PR
+
+- Added `1550_PR`, a 1550 nm polarization rotator with two optical ports. The authorized device library provides the whitebox, and the PDK includes the blackbox.
+
+- Blackboxes for SOI polarization devices and splitters retain the source Text (10/0) annotations for inputs, outputs, polarization and splitting ratios next to the corresponding PinRec names, inside the blackbox outline. PinRec names and port geometry are unchanged.
+
+## 2026-11-07 · Whitebox update prompts and blackbox synchronization
+
+- At startup, KLayout checks for whitebox updates only when the library is installed and accessible. The prompt opens the existing updater; missing access or connectivity is ignored.
+- The local whitebox publishing command generates and verifies blackboxes, then publishes only changed blackbox GDS files to the existing PDK development branch.
+- Both `JNULib` and `JNULib_BlackBox` display the SOI PDK version while retaining their registered names.
+- `Pcell_Taper` uses the last confirmed parameters for new placements and retains them across restarts. Canceling or opening an older GDS does not change them.
+
+## 2026-11-01 · Paperclip code maintenance
+
+- Share axis-aligned segment classification between paperclip variants and reuse bend-type normalization.
+- Remove duplicate waveguide layer initialization and share parameter-state writes for bend and S-bend PCells.
+
+## 2026-10-31 · DRC deep trench layer
+
+- Use layer 201/0 for deep trench spacing checks against metal.
 
 ## 2026-10-30 · Whitebox library organization transfer
 
@@ -20,6 +42,10 @@ Updates are listed newest first. Historical dates follow Git commit dates in Bei
 ## 2026-10-30 · V1.8 development branch
 
 - Merge V1.7 into main and rename the development branch to V1.8, updating the menu version.
+
+## 2026-10-30 · V1.9 development branch
+
+- Merge V1.8 into main and rename the development branch to V1.9, updating the menu version.
 
 ## 2026-10-30 · License copyright notice
 
@@ -43,6 +69,7 @@ Updates are listed newest first. Historical dates follow Git commit dates in Bei
 
 ## 2026-10-26 · Cross-GDS copying and legacy PCell recovery
 
+- Restore matching legacy local Taper and straight-waveguide references in memory when opening the original GDS, without writing the source. Add validation of the original-file workflow: select a subcell in the Cells tree, create a new Layout before copying, paste and save/reopen.
 - Recover legacy Waveguides identified by PCell context even when route properties are missing or cells were renamed, preventing empty waveguides after copying to another GDS.
 - Compare every cell's layers, text, PinRec, properties and child hierarchy before automatic recovery. Retain cached geometry when the current implementation differs.
 - Add `JNU_MWP_tools/release/repair_cross_gds_layout.py` to save a repaired copy while preserving the source. Restore matching local Taper, straight and Waveguide references; retain unmatched devices as static cells and verify the saved GDS by rereading it.

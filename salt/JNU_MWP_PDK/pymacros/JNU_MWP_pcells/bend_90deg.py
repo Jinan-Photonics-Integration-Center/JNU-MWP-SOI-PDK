@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-07
+# 时间: 2026-11
 
 """90° 弯曲波导 PCell。
 
@@ -19,12 +19,12 @@ import sys
 import pya
 
 try:
-    from .pcell_defaults import default_choice, default_float, default_int, save_pcell_defaults
+    from .pcell_defaults import default_choice, default_float, default_int, save_pcell_defaults, _set_state_value as _write_state_value
 except ImportError:
     PCELL_DIR = os.path.dirname(os.path.abspath(__file__))
     if PCELL_DIR not in sys.path:
         sys.path.insert(0, PCELL_DIR)
-    from pcell_defaults import default_choice, default_float, default_int, save_pcell_defaults
+    from pcell_defaults import default_choice, default_float, default_int, save_pcell_defaults, _set_state_value as _write_state_value
 
 # 弯曲工具模块位于 tools 目录（在 JNU_MWP_PDK 根目录下）
 PYMACROS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -453,11 +453,7 @@ class Bend90deg(pya.PCellDeclarationHelper):
 
     def _set_state_value(self, state, value):
         """写入 GUI 参数状态，不同 KLayout 版本失败时静默跳过。"""
-        try:
-            state.value = value
-            return True
-        except Exception:
-            return False
+        return _write_state_value(state, value)
 
     def callback_impl(self, name):
         """用户编辑参数时，动态显示/隐藏参数并实时更新依赖值。"""
