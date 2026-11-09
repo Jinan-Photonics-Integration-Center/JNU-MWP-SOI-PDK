@@ -11,7 +11,7 @@ Updates are listed newest first. Historical dates follow Git commit dates in Bei
 
 ## 2026-11-09 · Blackbox optical port annotations
 
-- Blackboxes for SOI polarization devices and splitters preserve the source Text (10/0) annotations for inputs, outputs, polarization and splitting ratios at their original locations. PinRec names and port geometry are unchanged.
+- Blackboxes for SOI polarization devices and splitters retain the source Text (10/0) annotations for inputs, outputs, polarization and splitting ratios next to the corresponding PinRec names. PinRec names and port geometry are unchanged.
 
 ## 2026-11-07 · Whitebox update prompts and blackbox synchronization
 

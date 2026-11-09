@@ -281,7 +281,7 @@ def _copy_pin_layer(src_cell, dst_cell, src_layout, dst_layout):
 
 
 def _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout):
-    """只复制偏振及分光器件的端口说明，排除作者、工艺备注和内部图形。"""
+    """按白盒文字的位置找到对应 PinRec，将说明放到端口编号左侧。"""
     if not re.search(r"(?:^|_)(?:PBS|PSR|PR|polarizer|splitter|MMI|Ybranch|DC)(?:_|$)",
                      dst_cell.name, re.IGNORECASE):
         return
@@ -289,6 +289,11 @@ def _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout):
     if source_index is None or source_index < 0:
         return
 
+    pins = [shape.text for shape in dst_cell.shapes(dst_layout.layer(PIN_LAYER)).each()
+            if shape.is_text()]
+    if not pins:
+        return
+    gap = max(1, round(0.25 / dst_layout.dbu))
     iterator = src_cell.begin_shapes_rec(source_index)
     while not iterator.at_end():
         shape = iterator.shape()
@@ -297,12 +302,12 @@ def _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout):
             if re.fullmatch(r"(?:in(?:put)?|out(?:put)?|(?:TE|TM)\d*(?:\s*\+\s*(?:TE|TM)\d*)?|\d+(?:\.\d+)?\s*%)",
                             text.string.strip(), re.IGNORECASE):
                 disp = _scale_point(text.trans.disp, src_layout.dbu, dst_layout.dbu)
-                transform = pya.Trans(text.trans.angle, text.trans.is_mirror(), disp.x, disp.y)
-                scaled = pya.Text(text.string, transform)
-                scaled.size = _scale_length(text.size, src_layout.dbu, dst_layout.dbu)
-                scaled.halign = text.halign
-                scaled.valign = text.valign
-                dst_cell.shapes(dst_layout.layer(TEXT_LAYER)).insert(scaled)
+                pin = min(pins, key=lambda item: (item.x - disp.x)**2 + (item.y - disp.y)**2)
+                label = pya.Text(text.string, pya.Trans(pin.x - gap, pin.y))
+                label.size = _scale_length(text.size, src_layout.dbu, dst_layout.dbu)
+                label.halign = pya.Text.HAlignRight
+                label.valign = pya.Text.VAlignBottom
+                dst_cell.shapes(dst_layout.layer(TEXT_LAYER)).insert(label)
         iterator.next()
 
 

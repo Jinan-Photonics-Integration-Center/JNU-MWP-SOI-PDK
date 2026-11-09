@@ -19,15 +19,15 @@ from JNU_MWP_tools.release.blackbox_validation import verify_port_straights
 
 # 白盒里确有标注的器件；没有源标注的器件不推断偏振和比例。
 PORT_ANNOTATIONS = {
-    "1310_90/10_splitter": ("100%", "10%", "90%"),
-    "1310_PBS": ("In", "TE", "TM"),
-    "1310_PR": ("In", "out"),
-    "1310_TE_polarizer": ("In", "Out"),
-    "1310_TM_polarizer": ("In", "Out"),
-    "1550_90/10_splitter": ("In", "10%", "90%"),
-    "1550_95/5_splitter": ("In", "5%", "95%"),
-    "1550_PBS": ("In", "TE", "TM"),
-    "1550_TE_polarizer": ("TE+TM", "TE"),
+    "1310_90/10_splitter": {"100%": "opt1", "10%": "opt2", "90%": "opt3"},
+    "1310_PBS": {"In": "opt1", "TE": "opt3", "TM": "opt4"},
+    "1310_PR": {"In": "opt1", "out": "opt2"},
+    "1310_TE_polarizer": {"In": "opt1", "Out": "opt2"},
+    "1310_TM_polarizer": {"In": "opt1", "Out": "opt2"},
+    "1550_90/10_splitter": {"In": "opt1", "10%": "opt2", "90%": "opt3"},
+    "1550_95/5_splitter": {"In": "opt1", "5%": "opt2", "95%": "opt3"},
+    "1550_PBS": {"TE": "opt1", "TM": "opt2", "In": "opt3"},
+    "1550_TE_polarizer": {"TE+TM": "opt1", "TE": "opt2"},
 }
 
 
@@ -93,7 +93,14 @@ def main():
         disk = pya.Layout()
         disk.read(str(source_files[name]))
         labels = _port_annotation_texts(disk.top_cell())
-        assert Counter(t.string for t in labels) == Counter(PORT_ANNOTATIONS.get(name, ())), name
+        expected = PORT_ANNOTATIONS.get(name, {})
+        assert Counter(t.string for t in labels) == Counter(expected.keys()), name
+        pins = {s.text.string: s.text for s in disk.top_cell().shapes(disk.layer(1, 10)).each()
+                if s.is_text()}
+        for label in labels:
+            pin = pins[expected[label.string]]
+            assert label.y == pin.y and abs((pin.x - label.x) * disk.dbu - 0.25) <= disk.dbu, name
+            assert label.halign == pya.Text.HAlignRight, name
         key = lambda t: (t.string, str(t.trans), t.size, t.halign, t.valign)
         assert Counter(map(key, labels)) == Counter(map(key, _port_annotation_texts(registered))), name
         assert Counter(map(key, labels)) == Counter(map(key, _port_annotation_texts(instance_cell))), name
