@@ -97,10 +97,23 @@ def main():
         assert Counter(t.string for t in labels) == Counter(expected.keys()), name
         pins = {s.text.string: s.text for s in disk.top_cell().shapes(disk.layer(1, 10)).each()
                 if s.is_text()}
+        body = disk.top_cell().bbox(disk.layer(998, 0))
         for label in labels:
             pin = pins[expected[label.string]]
-            assert label.y == pin.y and abs((pin.x - label.x) * disk.dbu - 0.25) <= disk.dbu, name
-            assert label.halign == pya.Text.HAlignRight, name
+            assert abs(pin.y - label.y) * disk.dbu <= 0.25, (name, label, pin)
+            assert 0 < abs(pin.x - label.x) * disk.dbu <= 0.5, (name, label, pin)
+            # 预留完整字高及保守的字宽，避免仅校验文字锚点。
+            width = len(label.string) * label.size
+            left = label.halign == pya.Text.HAlignLeft
+            x0 = label.x if left else label.x - width
+            if label.valign == pya.Text.VAlignTop:
+                y0 = label.y - label.size
+            elif label.valign == pya.Text.VAlignBottom:
+                y0 = label.y
+            else:
+                y0 = label.y - label.size // 2
+            assert body.contains(pya.Point(x0, y0)), (name, label)
+            assert body.contains(pya.Point(x0 + width, y0 + label.size)), (name, label)
         key = lambda t: (t.string, str(t.trans), t.size, t.halign, t.valign)
         assert Counter(map(key, labels)) == Counter(map(key, _port_annotation_texts(registered))), name
         assert Counter(map(key, labels)) == Counter(map(key, _port_annotation_texts(instance_cell))), name

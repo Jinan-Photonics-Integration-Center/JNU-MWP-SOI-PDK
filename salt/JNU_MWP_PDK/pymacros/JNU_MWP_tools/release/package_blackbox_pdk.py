@@ -280,8 +280,8 @@ def _copy_pin_layer(src_cell, dst_cell, src_layout, dst_layout):
         iterator.next()
 
 
-def _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout):
-    """按白盒文字的位置找到对应 PinRec，将说明放到端口编号左侧。"""
+def _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout, body):
+    """按白盒文字找到对应 PinRec，说明文字从黑盒边缘向内排。"""
     if not re.search(r"(?:^|_)(?:PBS|PSR|PR|polarizer|splitter|MMI|Ybranch|DC)(?:_|$)",
                      dst_cell.name, re.IGNORECASE):
         return
@@ -293,7 +293,7 @@ def _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout):
             if shape.is_text()]
     if not pins:
         return
-    gap = max(1, round(0.25 / dst_layout.dbu))
+    inset = max(1, round(0.25 / dst_layout.dbu))
     iterator = src_cell.begin_shapes_rec(source_index)
     while not iterator.at_end():
         shape = iterator.shape()
@@ -303,10 +303,19 @@ def _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout):
                             text.string.strip(), re.IGNORECASE):
                 disp = _scale_point(text.trans.disp, src_layout.dbu, dst_layout.dbu)
                 pin = min(pins, key=lambda item: (item.x - disp.x)**2 + (item.y - disp.y)**2)
-                label = pya.Text(text.string, pya.Trans(pin.x - gap, pin.y))
+                left = pin.x <= body.center().x
+                x = body.left + inset if left else body.right - inset
+                y = min(body.top - inset, max(body.bottom + inset, pin.y))
+                label = pya.Text(text.string, pya.Trans(x, y))
                 label.size = _scale_length(text.size, src_layout.dbu, dst_layout.dbu)
-                label.halign = pya.Text.HAlignRight
-                label.valign = pya.Text.VAlignBottom
+                label.halign = pya.Text.HAlignLeft if left else pya.Text.HAlignRight
+                # 顶边附近的文字向下排，底边附近的文字向上排。
+                if body.top - y < label.size:
+                    label.valign = pya.Text.VAlignTop
+                elif y - body.bottom < label.size:
+                    label.valign = pya.Text.VAlignBottom
+                else:
+                    label.valign = pya.Text.VAlignCenter
                 dst_cell.shapes(dst_layout.layer(TEXT_LAYER)).insert(label)
         iterator.next()
 
@@ -377,7 +386,7 @@ def _draw_blackbox_cell(src_cell, src_layout, dst_layout, target_name=None):
 
     body = _draw_port_straights(dst_cell, si_bbox)
     dst_cell.shapes(devrec_index).insert(devrec_bbox)
-    _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout)
+    _copy_port_annotations(src_cell, dst_cell, src_layout, dst_layout, body)
 
     label_text = dst_cell.name + " (black box)"
     if not _insert_basic_text(dst_cell, body, dst_layout.dbu, label_text):
