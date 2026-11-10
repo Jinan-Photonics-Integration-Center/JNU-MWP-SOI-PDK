@@ -9,6 +9,10 @@
 
 Updates are listed newest first. Historical dates follow Git commit dates in Beijing time (UTC+8). Related changes on the same day are grouped; the full commit history shows the content and timestamp of every commit.
 
+## 2026-11-10 · Path to Waveguide
+
+- When segments cannot fit the requested bend radius or fixed transitions, use the warning checkbox to temporarily highlight them in the layout.
+
 ## 2026-11-09 · V1.10 development branch
 
 - Add a JNU SOI layout API and JSON batch entry point for device discovery, PCell placement, named-port routing, and GDS export.

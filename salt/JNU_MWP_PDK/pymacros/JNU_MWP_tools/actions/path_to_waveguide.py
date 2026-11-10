@@ -2070,26 +2070,69 @@ def _format_capacity_issues(analyses, requested_radius, dbu=0.001):
     return "\n".join(lines)
 
 
-def _confirm_radius_reduction(details):
-    """用Yes/Cancel确认是否按可行半径继续生成。"""
+def _show_capacity_warning(view, analyses, requested_radius, dbu, can_reduce, skipped_count):
+    """列出空间不足的线段，并可在当前视图中临时高亮。"""
     message = pya.QMessageBox()
     _set_regular_dialog_font(message)
     message.setWindowTitle(_dialog_text("JNU Path to Waveguide"))
-    message.setText(_dialog_message(
-        "Some segments cannot fit the requested bend radius.",
-        "部分线段不足以容纳请求的弯曲半径。",
-    ))
-    message.setInformativeText(details + "\n\n" + _dialog_message(
-        "Reduce the radius and continue?", "是否降低半径并继续生成？",
-    ))
-    message.setStandardButtons(pya.QMessageBox.Yes | pya.QMessageBox.Cancel)
-    try:
+    details = _format_capacity_issues(analyses, requested_radius, dbu)
+    if can_reduce:
+        message.setText(_dialog_message(
+            "Some segments cannot fit the requested bend radius.",
+            "部分线段不足以容纳请求的弯曲半径。",
+        ))
+        if skipped_count:
+            details += "\n\n" + _dialog_message(
+                "%d path(s) cannot fit the fixed transitions even with a reduced radius and will be kept.",
+                "另有 %d 条 Path 即使降低半径也无法容纳固定过渡段，将保留原 Path。",
+            ) % skipped_count
+        details += "\n\n" + _dialog_message(
+            "Reduce the radius and continue?", "是否降低半径并继续生成？",
+        )
+        message.setStandardButtons(pya.QMessageBox.Yes | pya.QMessageBox.Cancel)
         message.button(pya.QMessageBox.Yes).setText(_dialog_message("Yes", "是"))
         message.button(pya.QMessageBox.Cancel).setText(_dialog_text("Cancel"))
-    except Exception:
-        pass
-    message.setDefaultButton(pya.QMessageBox.Yes)
-    return pya.QMessageBox_StandardButton(message.exec_()) == pya.QMessageBox.Yes
+        message.setDefaultButton(pya.QMessageBox.Yes)
+    else:
+        message.setText(_dialog_message(
+            "The paths cannot fit the fixed transitions and will be kept.",
+            "这些路径无法容纳固定过渡段，将保留原路径。",
+        ))
+        message.setStandardButtons(pya.QMessageBox.Ok)
+        message.button(pya.QMessageBox.Ok).setText(_dialog_text("OK"))
+    message.setInformativeText(details)
+
+    checkbox = pya.QCheckBox(_dialog_message(
+        "Highlight insufficient segments in the layout", "在版图中标记空间不足的线段",
+    ))
+    message.setCheckBox(checkbox)
+    markers = []
+
+    def clear_markers():
+        while markers:
+            markers.pop()._destroy()
+
+    def toggle_markers(checked):
+        clear_markers()
+        if not checked:
+            return
+        # 问题坐标来自当前编辑单元；下钻编辑时需转换到画布坐标。
+        context = view.active_cellview().context_dtrans()
+        for analysis in analyses:
+            for issue in analysis["issues"]:
+                start = context * issue["start"].to_dtype(dbu)
+                end = context * issue["end"].to_dtype(dbu)
+                marker = pya.Marker(view)
+                markers.append(marker)
+                marker.frame_color = 0xFF6600
+                marker.line_width = 5
+                marker.set(pya.DEdge(start, end))
+
+    checkbox.toggled(toggle_markers)
+    try:
+        return pya.QMessageBox_StandardButton(message.exec_()) == pya.QMessageBox.Yes
+    finally:
+        clear_markers()
 
 
 def _safe_cell_name(layout, base_name, current_cell=None):
@@ -2425,18 +2468,13 @@ def path_to_waveguide():
 
         reducible = [analysis for _index, _obj, _path, _original, analysis in prepared if analysis["issues"] and analysis["possible"]]
         impossible = [analysis for _index, _obj, _path, _original, analysis in prepared if not analysis["possible"]]
-        if reducible:
-            details = _format_capacity_issues(reducible + impossible, requested_radius, layout.dbu)
-            if impossible:
-                details += "\n\n另有 %d 条Path即使降低半径也无法容纳固定过渡段，将保留原Path。" % len(impossible)
-            if not _confirm_radius_reduction(details):
-                return
-        elif impossible:
-            _message(
-                "JNU_MWP_PDK",
-                "以下Path无法容纳固定过渡段，将保留原Path：\n" +
-                _format_capacity_issues(impossible, requested_radius, layout.dbu),
+        if reducible or impossible:
+            confirmed = _show_capacity_warning(
+                view, reducible + impossible, requested_radius, layout.dbu,
+                can_reduce=bool(reducible), skipped_count=len(impossible),
             )
+            if reducible and not confirmed:
+                return
 
         # 本地 PCell 的声明注册和首次 variant 几何生产都不能在活动的
         # KLayout Undo transaction 中执行，因此先完成所有 variant 预生成。
