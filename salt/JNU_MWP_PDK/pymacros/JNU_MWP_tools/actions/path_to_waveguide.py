@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 # JNU_MWP_PDK Path to Waveguide 功能。
 # 读取选中图层中的 Path，完成参数设置、端点吸附和波导 cell 创建。
@@ -2130,6 +2130,7 @@ def _show_capacity_warning(view, analyses, requested_radius, dbu, can_reduce, sk
 
     checkbox.toggled(toggle_markers)
     try:
+        checkbox.setChecked(True)
         return pya.QMessageBox_StandardButton(message.exec_()) == pya.QMessageBox.Yes
     finally:
         clear_markers()

@@ -11,7 +11,7 @@ Updates are listed newest first. Historical dates follow Git commit dates in Bei
 
 ## 2026-11-10 · Path to Waveguide
 
-- When segments cannot fit the requested bend radius or fixed transitions, use the warning checkbox to temporarily highlight them in the layout.
+- The warning automatically highlights segments that cannot fit the requested bend radius or fixed transitions. Uncheck the option or close the warning, including by continuing to generate the waveguide, to clear the highlights.
 
 ## 2026-11-09 · V1.10 development branch
 
