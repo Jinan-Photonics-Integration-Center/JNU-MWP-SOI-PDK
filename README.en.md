@@ -39,6 +39,8 @@ Copy these prompts into an AI agent **that can access local files and run comman
 <a id="updates-and-whitebox-gds"></a>
 ### Updates, language, and whiteboxes
 
+Whitebox maintainers can create `jnu_whitebox_source.json` in the KLayout user directory (`Application.instance().application_data_path()`) containing `{"gds_directory": "D:/your-library/JNU_MWP_gds"}`. Use an absolute directory containing whitebox GDS files. When valid, JNULib reads this source directly at startup or **Reload JNU PDK**, so saved GDS edits need no copy into the installation. Devices converted to ordinary local cells must be placed again. Remove the configuration to restore the installed-directory priority. Missing or empty directories and invalid configuration produce a message and fall back to the installed copy. This controls whitebox loading only; blackboxes still follow the publication workflow.
+
 - A `main` installation checks GitHub for updates at startup. Click **Update now** in the prompt or use **JNU_MWP_SOI_PDK V1.10 → Check for PDK Updates**. Development branches do not show automatic update prompts. Restart KLayout after updating.
 - All function menus display **中文 / English** together, with no language switching required. **重新加载 JNU PDK / Reload JNU PDK** can reload Python tools, but changes to startup macros, technology, or installation paths still require a restart.
 - Authorized users can choose **JNU_MWP_SOI_PDK V1.10 → Install / Update Whitebox Library** to install 32 fixed whiteboxes from the separate [JNU-MWP-SOI-Library](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-Library). This public PDK repository contains no whitebox GDS.

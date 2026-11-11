@@ -109,6 +109,8 @@
 
 ### Runtime Naming
 
+- 本机直接编辑白盒时，可在 KLayout 用户目录配置 `jnu_whitebox_source.json`：`{"gds_directory": "D:/your-library/JNU_MWP_gds"}`。配置路径须为含 GDS 的绝对目录；启动和 Reload 都重新读取该配置及源文件，异常配置提示并回退。私有本机路径不提交，黑盒不因白盒运行时加载而自动重建。
+
 - `core/fixed_gds.py` 保留对用户目录 `jnu_private/JNU_MWP_gds` 的读取兼容，避免既有授权数据失效；缺失时使用源码或完整离线包内的固定 GDS。维护代码时不删除用户已安装的数据。
 - 白盒规范源为独立 `JNU-MWP-SOI-Library/JNU_MWP_gds/`；公开 PDK 的 `pymacros/JNU_MWP_gds/` 不跟踪任何 GDS。私有仓库克隆仍位于 `jnu_private`，安装器用同步记录保护用户手动修改并将授权 GDS 放到原目录顶层。同步前仍可从 `jnu_private/JNU_MWP_gds/` 加载。不要创建顶层 `gds/` 或独立 `JNU_MWP_ebeam_gds/`。
 - 移动或清理固定 GDS 后，用 `rg` 检查 loader、打包脚本、README 和辅助脚本，确保不存在指向旧 `gds/` 的路径；同时验证 `JNULib.py` 仍指向 `pymacros/JNU_MWP_gds/`。

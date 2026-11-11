@@ -74,6 +74,8 @@ description: Use when developing, verifying, or packaging the JNU_MWP_PDK KLayou
 
 ## Workflow
 
+本机维护者可在 KLayout 用户目录配置 `jnu_whitebox_source.json` 的绝对 `gds_directory`，让 JNULib 在启动和 Reload 时直接读取独立白盒源目录。配置只保存在本机，不提交作者机器路径；无配置沿用安装副本及 jnu_private 回退，配置无效须提示后回退，不复制或覆盖用户 GDS。
+
 固定器件新增、改名、几何或端口修改时，白盒 GDS 文件名、顶层 cell 名和来源说明提交到独立 Library 的 `main`，加载器映射、器件清单及验收提交当前 SOI PDK 开发分支。本机发布使用 `tools/publish_soi_blackboxes.py` 先推白盒，再重读核验并仅发布有变化的黑盒；详细步骤见 `references/workflows.md`。白盒 GDS 不进入公开仓库，不部署跨仓库凭据或定时任务。纯 PDK 工具或 PCell 代码修改不制造 Library 空提交。完成所需推送后，才进行用户已授权的 PDK 合并和版本递增。
 
 KLayout 启动时独立检查已安装白盒的更新；无白盒安装、无有效权限或离线时静默跳过，白盒提示不依赖公开 PDK 当前分支。

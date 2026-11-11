@@ -39,6 +39,8 @@
 <a id="更新与白盒-gds"></a><a id="updates-and-whitebox-gds"></a>
 ### 更新、语言与白盒
 
+白盒维护者可在 KLayout 用户目录（`Application.instance().application_data_path()`）创建 `jnu_whitebox_source.json`，内容为 `{"gds_directory": "D:/your-library/JNU_MWP_gds"}`。请填写本机包含白盒 GDS 的绝对目录。配置有效时，JNULib 在启动或 **Reload JNU PDK** 时直接读取该目录，保存源 GDS 后无需复制安装副本；修改已另存为普通本地 cell 的器件仍需重新放置。移除配置可恢复安装目录优先加载；目录不存在、为空或配置无效时输出提示并回退。此配置只控制白盒加载，黑盒发布仍通过维护流程同步。
+
 - `main` 安装版每次启动会后台检查 GitHub 更新；发现新版可点击弹窗中的“立即更新”，也可使用 **JNU_MWP_SOI_PDK V1.10 → Check for PDK Updates**。开发分支不自动提示更新；完成更新后重启 KLayout。
 - 功能菜单统一以 **中文 / English** 同时显示，无需切换语言。仅修改 Python 功能时可用 **重新加载 JNU PDK / Reload JNU PDK** 热重载；启动宏、Technology 或安装路径变动后仍应重启。
 - 获授权后使用 **JNU_MWP_SOI_PDK V1.10 → Install / Update Whitebox Library**，从独立 [JNU-MWP-SOI-Library](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-Library) 安装 32 份固定白盒；公开 PDK 仓库不包含白盒 GDS。

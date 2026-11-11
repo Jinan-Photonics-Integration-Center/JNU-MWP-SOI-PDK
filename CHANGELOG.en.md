@@ -9,6 +9,10 @@
 
 Updates are listed newest first. Historical dates follow Git commit dates in Beijing time (UTC+8). Related changes on the same day are grouped; the full commit history shows the content and timestamp of every commit.
 
+## 2026-11-11 · Local whitebox source directory
+
+- Support a whitebox GDS source directory through `jnu_whitebox_source.json` in the KLayout user directory. Restarting or reloading JNU PDK reads saved source edits; invalid configuration produces a message and falls back to the installed copy.
+
 ## 2026-11-10 · Path to Waveguide
 
 - DevRec (68/0) is hidden by default in the SOI layer settings and can be enabled manually in the layer list.

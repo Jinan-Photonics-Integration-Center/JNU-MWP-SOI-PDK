@@ -32,6 +32,8 @@
 
 ## Current Names and Layers
 
+- `core/fixed_gds.py`：每次加载读取 KLayout 用户目录的 `jnu_whitebox_source.json`；有效 `gds_directory` 优先于安装副本与 `jnu_private`，由 `tests/verify_whitebox_source.py` 验证源文件编辑及重载。
+
 - Product/manual display name: `JNU_MWP_SOI_PDK`。
 - Technology: `JNU_MWP_SOI_PDK`
 - Top-level menu: `JNU_MWP_SOI_PDK V1.10`；版本和名称由 `core/pdk_identity.py` 统一提供，内部菜单路径及 Action ID 不随展示名变化。
