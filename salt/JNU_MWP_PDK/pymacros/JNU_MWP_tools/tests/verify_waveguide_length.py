@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """验证波导及普通 Spiral 的实际长度、复合 Spiral 整批拒绝、GDS 和菜单回调。"""
 
@@ -71,6 +71,103 @@ def _reject(selection, reason):
         assert error.reason == reason, (error.reason, reason)
     else:
         raise AssertionError("无效选择没有报错：%s" % reason)
+
+
+def _standalone_bend_checks():
+    """验证三种独立弯、阵列缩放、分组报告及不带 PCell 上下文的 GDS。"""
+    from JNU_MWP_pcells.bend_90deg import Bend90deg, calculate_bend_derived
+    from JNU_MWP_tools.actions import calculate_waveguide_length as length_action
+    from JNU_MWP_tools.actions import calculate_waveguide_length_difference as difference_action
+    from JNU_MWP_tools.core import ui_language
+
+    layout = pya.Layout()
+    layout.dbu = 0.001
+    top = layout.create_cell("STANDALONE_BEND_TEST")
+    declaration = layout.register_pcell("Pcell_Bend_90deg", Bend90deg())
+    expected_lengths = []
+    instances = []
+    for bend_type in ("Circular", "Bezier", "Euler"):
+        params = {
+            "width": 0.7, "radius": 25.0, "bend_type": bend_type,
+            "bezier_k": 0.4, "Euler_Rmax": 40.0, "Euler_Rmin": 15.0,
+        }
+        cell = layout.cell(layout.add_pcell_variant(declaration, params))
+        expected = round(calculate_bend_derived(25, bend_type, 0.4, 40, 15, layout.dbu)["bend_length"], 3)
+        instance = top.insert(pya.CellInstArray(cell.cell_index(), pya.Trans()))
+        item = describe_selected_length_objects(_selection(top, [instance]), 0)[0]
+        assert item["kind"] == "bend90" and item["bend_count"] == 1
+        assert item["length_um"] == expected and item["parameters"]["width"] == 0.7
+        assert item["parameters"]["bend_type"] == bend_type
+        if bend_type == "Bezier":
+            assert item["parameters"]["bezier_k"] == 0.4
+        if bend_type == "Euler":
+            assert item["parameters"]["Euler_Rmax"] == 40.0
+            assert item["parameters"]["Euler_Rmin"] == 15.0
+        instances.append(instance)
+        expected_lengths.append(expected)
+        # 保存成无上下文普通单元时仍保留参数化名称和器件文字。
+        cell.name = cell.pcell_declaration().display_text(cell.pcell_parameters())
+
+    array = top.insert(pya.CellInstArray(
+        instances[0].cell_index, pya.ICplxTrans(2, 90, True, 100000, 0),
+        pya.Vector(200000, 0), pya.Vector(0, 200000), 2, 3,
+    ))
+    array_obj = pya.ObjectInstPath()
+    array_obj.top, array_obj.cv_index = top.cell_index(), 0
+    array_obj.append_path(pya.InstElement(array, -1, -1))
+    array_data = describe_selected_length_objects([array_obj], 0)[0]
+    assert array_data["copies"] == 6 and array_data["bend_count"] == 1
+    assert array_data["parameters"]["width"] == 1.4
+    assert abs(array_data["total_length_um"] - expected_lengths[0] * 12) < 1e-9
+    mixed = _selection(top, instances) + [array_obj]
+    details = describe_selected_length_objects(mixed, 0)
+    total = sum(expected_lengths) + expected_lengths[0] * 12
+    assert abs(sum(item["total_length_um"] for item in details) - total) < 1e-9
+    straight = _variant(layout, [(0, 0), (100, 0)])
+    straight_inst = top.insert(pya.CellInstArray(straight.cell_index(), pya.Trans()))
+    combined = describe_selected_length_objects(mixed + _selection(top, [straight_inst]), 0)
+    assert abs(sum(item["total_length_um"] for item in combined) - total - 100.0) < 1e-9
+    session = getattr(builtins, ui_language._SESSION_KEY, None)
+    try:
+        for language in ("en", "zh_CN"):
+            setattr(builtins, ui_language._SESSION_KEY, language)
+            report = length_action._result_message(details)
+            assert "%.3f µm" % total in report
+            assert ("90° Bend" if language == "en" else "独立 90° 弯曲波导") in report
+            difference = difference_action._result_message((details[:3], details[3:]))
+            assert ("Group 1 90° bends: 3" if language == "en" else "第 1 组 90° 弯曲数：3") in difference
+            assert ("Group 2 90° bends: 6" if language == "en" else "第 2 组 90° 弯曲数：6") in difference
+    finally:
+        setattr(builtins, ui_language._SESSION_KEY, session)
+
+    with tempfile.TemporaryDirectory(prefix="jnu_bend90_length_") as directory:
+        path = str(Path(directory) / "bends.gds")
+        options = pya.SaveLayoutOptions()
+        options.set_format_from_filename(path)
+        options.write_context_info = False
+        layout.write(path, options)
+        saved = pya.Layout()
+        saved.read(path)
+        saved_top = saved.cell(top.name)
+        reread = describe_selected_length_objects(_selection(saved_top, list(saved_top.each_inst())[:3]), 0)
+        assert all(not instance.cell.is_pcell_variant() for instance in list(saved_top.each_inst())[:3])
+        for original, restored in zip(details[:3], reread):
+            assert restored["length_um"] == original["length_um"]
+            assert restored["bend_count"] == 1
+            keys = ["width", "bend_type"]
+            if original["parameters"]["bend_type"] == "Euler":
+                keys += ["Euler_Rmax", "Euler_Rmin", "Euler_Reff"]
+            else:
+                keys += ["radius"]
+                if original["parameters"]["bend_type"] == "Bezier":
+                    keys += ["bezier_k", "Bezier_Rmax", "Bezier_Rmin"]
+            for key in keys:
+                assert restored["parameters"][key] == original["parameters"][key], (key, restored, original)
+
+    broken = layout.create_cell("Pcell_Bend_90deg_missing_length")
+    broken_inst = top.insert(pya.CellInstArray(broken.cell_index(), pya.Trans()))
+    _reject(_selection(top, [instances[0], broken_inst]), "missing_length")
+    print("PASS: standalone Circular/Bezier/Euler bends, scaled arrays, bilingual grouped reports and static GDS reread", flush=True)
 
 
 def _database_checks():
@@ -506,6 +603,7 @@ def _gui_checks():
 
 
 if __name__ == "__main__":
+    _standalone_bend_checks()
     _database_checks()
     _composite_checks()
     _spiral_checks()

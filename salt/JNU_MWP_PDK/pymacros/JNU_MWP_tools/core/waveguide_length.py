@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
-"""只读汇总波导及普通 Spiral，按宽度计长并排除渐变段。"""
+"""只读汇总波导、独立 90° 弯及普通 Spiral，按宽度计长并排除渐变段。"""
 
 import json
 import math
@@ -33,7 +33,12 @@ def _waveguide_kind(cell):
     """按 PCell 声明、恢复标记和旧版名称识别波导种类。"""
     declaration = cell.pcell_declaration()
     if declaration is not None:
-        return {"Waveguide": "single", "Composite_Waveguide": "composite"}.get(declaration.name())
+        return {
+            "Waveguide": "single", "Composite_Waveguide": "composite",
+            "Bend_90deg": "bend90", "Pcell_Bend_90deg": "bend90",
+        }.get(declaration.name())
+    if re.match(r"^(?:<defunct>)?(?:JNULib\.)?(?:Pcell_)?Bend_90deg(?:$|[_$])", cell.name):
+        return "bend90"
     for key in (WAVEGUIDE_KIND_PROPERTY, WAVEGUIDE_KIND_GDS_PROPERTY):
         kind = cell.property(key)
         if kind in ("single", "composite"):
@@ -108,6 +113,40 @@ def _spiral_data(cell, kind):
         "Bezier_Rmin": parameter("Bezier_Rmin", "Rmin") if bend == "Bezier" else None,
     }
     return length, annotation, params
+
+
+def _bend90_data(cell):
+    """读取独立弯的实际中心线长度，普通 GDS 仅使用已保存标注。"""
+    native = dict(cell.pcell_parameters_by_name())
+    layer = cell.layout().find_layer(10, 0)
+    annotations = []
+    if layer is not None:
+        for shape in cell.shapes(layer).each():
+            if shape.is_text() and shape.text.string.startswith("Bend_90deg "):
+                text = shape.text.string
+                match = re.search(r"\bL=([0-9]+(?:\.[0-9]+)?)um\b", text)
+                if match and 0 < float(match.group(1)) < math.inf:
+                    annotations.append((float(match.group(1)), text))
+    if len(annotations) > 1:
+        raise WaveguideLengthError("missing_length")
+    length = annotations[0][0] if annotations else _number(native.get("bend_length"))
+    if length is None or length <= 0:
+        raise WaveguideLengthError("missing_length")
+    annotation = annotations[0][1] if annotations else ""
+    overrides = {}
+    for key, token in (
+        ("width", "w"), ("radius", "R"),
+        ("Euler_Rmax", "Rmax"), ("Euler_Rmin", "Rmin"),
+    ):
+        if _number(native.get(key)) is None:
+            match = re.search(r"\b%s=([0-9]+(?:\.[0-9]+)?)um\b" % token, annotation)
+            if match:
+                overrides[key] = float(match.group(1))
+    if not native.get("bend_type"):
+        match = re.search(r"\btype=(Circular|Bezier|Euler)\b", annotation)
+        if match:
+            overrides["bend_type"] = match.group(1)
+    return length, annotation, overrides
 
 
 def _stored_annotation(cell):
@@ -230,6 +269,8 @@ def _route_bend_count(points):
 
 def _bend_data(cell, instance, kind, annotation):
     """离散直角弯与连续螺旋臂分别统计，参数缺失时保持未知。"""
+    if kind == "bend90":
+        return 1, 0
     if kind in ("single", "composite"):
         try:
             points, _ = _saved_route_data(cell, instance)
@@ -322,6 +363,8 @@ def describe_selected_waveguides(selection, cellview_index, include_spirals=Fals
         overrides = None
         if kind in ("paperclip", "archimedean"):
             length, annotation, overrides = _spiral_data(instance.cell, kind)
+        elif kind == "bend90":
+            length, annotation, overrides = _bend90_data(instance.cell)
         else:
             length, annotation = _stored_annotation(instance.cell)
         params = _waveguide_parameters(instance.cell, annotation, 1.0, overrides)

@@ -9,6 +9,10 @@
 
 Updates are listed newest first. Historical dates follow Git commit dates in Beijing time (UTC+8). Related changes on the same day are grouped; the full commit history shows the content and timestamp of every commit.
 
+## 2026-11-12 · Standalone bend lengths
+
+- Waveguide length and grouped length difference support `Pcell_Bend_90deg` (Circular, Bezier and Euler), mixed with supported waveguides and ordinary Spirals. Reports include width and bend parameters, count each standalone 90° bend once, and account for arrays and instance scaling.
+
 ## 2026-11-11 · Local whitebox source directory
 
 - Support a whitebox GDS source directory through `jnu_whitebox_source.json` in the KLayout user directory. Restarting or reloading JNU PDK reads saved source edits; invalid configuration produces a message and falls back to the installed copy.
