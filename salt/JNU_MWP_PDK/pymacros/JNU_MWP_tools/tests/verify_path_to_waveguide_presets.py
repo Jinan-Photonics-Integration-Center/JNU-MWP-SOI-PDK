@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """Path to Waveguide 预设数据、持久化和用户参数页回归。"""
 
 import json
+import builtins
 import os
 from pathlib import Path
 import sys
@@ -487,11 +488,117 @@ def _check_qt_pages_when_available():
     _assert(staged is not None and len(staged) == 3, "预设管理窗口未返回暂存列表。")
 
 
+def _check_invalid_draft_management():
+    """重名或空名称不能阻止真实管理删除、取消管理或关闭主窗口。"""
+    if not hasattr(pya, "QApplication"):
+        return
+    from JNU_MWP_tools.core import ui_language
+
+    original_path = path_tool._waveguide_params_file
+    original_message = path_tool._message
+    original_state_file = gui_state._gui_state_file
+    original_manage = path_tool._show_manage_presets_dialog
+    session = getattr(builtins, ui_language._SESSION_KEY, None)
+    with tempfile.TemporaryDirectory(prefix="jnu_invalid_preset_") as directory:
+        path_tool._waveguide_params_file = lambda: os.path.join(directory, "presets.json")
+        gui_state._gui_state_file = lambda: os.path.join(directory, "gui.json")
+        try:
+            for language in ("en", "zh_CN"):
+                setattr(builtins, ui_language._SESSION_KEY, language)
+                for invalid_name in ("second", ""):
+                    for operation in ("delete", "cancel_manage", "cancel", "close"):
+                        settings = path_tool._default_waveguide_params()
+                        settings, first, _ = path_tool._add_user_preset(settings, path_tool.TAB_SINGLE, settings["single"])
+                        values = dict(settings["single"], width=0.35)
+                        settings, second, _ = path_tool._add_user_preset(settings, path_tool.TAB_SINGLE, values)
+                        settings, _ = path_tool._update_user_preset_name(settings, first["id"], "first")
+                        settings, _ = path_tool._update_user_preset_name(settings, second["id"], "second")
+                        settings["user_defined"]["selected_id"] = first["id"]
+                        settings["active_tab"] = path_tool.TAB_USER_DEFINED
+                        path_tool._save_waveguide_params(settings)
+                        messages, errors, timers = [], [], []
+                        path_tool._message = lambda title, text: messages.append(text)
+
+                        def button(dialog, label):
+                            return next(widget for widget in dialog.findChildren()
+                                        if isinstance(widget, pya.QPushButton) and widget.text == path_tool._dialog_text(label))
+
+                        def schedule(callback, delay=0):
+                            timer = pya.QTimer()
+                            timer.setSingleShot(True)
+                            timer.timeout(callback)
+                            timers.append(timer)
+                            timer.start(delay)
+
+                        def manage(parent, presets):
+                            def operate():
+                                dialog = _qt_value(pya.QApplication.instance(), "activeModalWidget")
+                                try:
+                                    listing = next(widget for widget in dialog.findChildren() if isinstance(widget, pya.QListWidget))
+                                    _assert("first" in listing.item(0).text, "管理窗口未恢复原名称。")
+                                    listing.setCurrentRow(0)
+                                    button(dialog, "Delete Selected").click()
+                                    _assert(listing.count == 1, "管理窗口未删除选中行。")
+                                    button(dialog, "OK" if operation == "delete" else "Cancel").click()
+                                except Exception as error:
+                                    errors.append(str(error))
+                                    dialog.reject()
+                            schedule(operate)
+                            return original_manage(parent, presets)
+
+                        path_tool._show_manage_presets_dialog = manage
+
+                        def edit():
+                            dialog = _qt_value(pya.QApplication.instance(), "activeModalWidget")
+                            dialog.findChild("jnu_user_defined_preset_name").setText(invalid_name)
+                            dialog.findChild("jnu_user_defined_note").setPlainText("保留的备注")
+
+                            def finish():
+                                try:
+                                    if operation in ("delete", "cancel_manage"):
+                                        if operation == "delete":
+                                            button(dialog, "OK").click()
+                                            _assert(len(messages) == 1, "确认生成未拦截无效名称。")
+                                            messages.clear()
+                                        button(dialog, "Manage").click()
+                                        _assert(not messages, "管理仍被无效名称提示阻止。")
+                                        button(dialog, "Cancel").click()
+                                    elif operation == "cancel":
+                                        button(dialog, "Cancel").click()
+                                    else:
+                                        dialog.close()
+                                except Exception as error:
+                                    errors.append(str(error))
+                                    dialog.reject()
+                            # 等待名称防抖校验失败后，再验证管理入口仍然可用。
+                            schedule(finish, 650)
+                        schedule(edit)
+                        _assert(path_tool._show_waveguide_dialog() is None, "取消不应生成波导。")
+                        _assert(not errors, "重名管理回归失败：%s" % errors)
+                        _assert(not messages, "取消或关闭仍然弹出名称错误。")
+                        saved = path_tool._load_waveguide_params()
+                        expected = settings["user_defined"]["presets"][1:] if operation == "delete" else settings["user_defined"]["presets"]
+                        actual = saved["user_defined"]["presets"]
+                        _assert([item["id"] for item in actual] == [item["id"] for item in expected], "删除了错误的预设。")
+                        for stored, old in zip(actual, expected):
+                            _assert(stored["name"] == old["name"] and stored["params"] == old["params"], "预设名称或参数被改写。")
+                        if operation != "delete":
+                            _assert(actual[0]["note"] == "保留的备注", "备注未保存。")
+            print("PASS: duplicate/empty draft names, actual Manage/Delete/Cancel/close, strict OK validation and preserved notes in English/Chinese")
+        finally:
+            path_tool._waveguide_params_file = original_path
+            path_tool._message = original_message
+            path_tool._show_manage_presets_dialog = original_manage
+            gui_state._gui_state_file = original_state_file
+            setattr(builtins, ui_language._SESSION_KEY, session)
+
+
 def main():
     _check_defaults_and_result_conversion()
     _check_preset_naming_deduplication_and_deletion()
     _check_json_migration_and_atomic_persistence()
     _check_qt_pages_when_available()
+    _check_invalid_draft_management()
     print("Path to Waveguide presets regression: PASS")
 
 

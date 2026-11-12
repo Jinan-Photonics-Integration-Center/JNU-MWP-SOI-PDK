@@ -1541,7 +1541,7 @@ def _show_waveguide_dialog(dbu=0.001):
             user_defined["preset_name"].blockSignals(False)
             name_state["loading"] = False
 
-    def flush_name(force=False):
+    def flush_name(force=False, discard_invalid=False):
         if not name_state["dirty"] or not name_state["preset_id"]:
             return True
         try:
@@ -1549,6 +1549,10 @@ def _show_waveguide_dialog(dbu=0.001):
                 state["saved"], name_state["preset_id"], preset_name_text(),
             )
         except ValueError as error:
+            if discard_invalid:
+                # 管理与取消不能被尚未保存的重名或空名称锁住，恢复原名后继续。
+                load_selected_name(_selected_user_preset(state["saved"], name_state["preset_id"]))
+                return True
             if force:
                 _message("JNU_MWP_PDK", _dialog_error(error))
             return False
@@ -1630,8 +1634,8 @@ def _show_waveguide_dialog(dbu=0.001):
         note_state["dirty"] = True
         note_timer.start(500)
 
-    def flush_user_fields(force=False):
-        if not flush_name(force):
+    def flush_user_fields(force=False, discard_invalid_name=False):
+        if not flush_name(force, discard_invalid_name):
             return False
         return flush_note()
 
@@ -1716,7 +1720,7 @@ def _show_waveguide_dialog(dbu=0.001):
             ) % _dialog_error(error))
 
     def manage_presets(_checked=False):
-        if not flush_user_fields(True):
+        if not flush_user_fields(True, discard_invalid_name=True):
             return
         current_id = _current_user_preset_id(user_defined)
         if current_id:
@@ -1759,7 +1763,7 @@ def _show_waveguide_dialog(dbu=0.001):
             dialog.accept()
 
     def reject_dialog(_checked=False):
-        if flush_user_fields(True):
+        if flush_user_fields(True, discard_invalid_name=True):
             dialog.reject()
 
     single["save_button"].clicked(
@@ -1829,7 +1833,7 @@ def _show_waveguide_dialog(dbu=0.001):
 
     while True:
         dialog_result = dialog.exec_()
-        if flush_user_fields(True):
+        if flush_user_fields(True, discard_invalid_name=(dialog_result == 0)):
             break
     persist_dialog_settings()
     if dialog_result == 0:

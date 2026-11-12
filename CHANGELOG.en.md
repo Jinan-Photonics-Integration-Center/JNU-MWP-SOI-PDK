@@ -11,6 +11,7 @@ Updates are listed newest first. Historical dates follow Git commit dates in Bei
 
 ## 2026-11-12 · Standalone bend lengths
 
+- Fix duplicate or empty draft preset names blocking Manage/Delete or closing the dialog. These actions restore the saved name while retaining preset parameters and notes; confirming generation still validates the name.
 - Position the Path to Waveguide capacity warning at the center-right of the current screen to keep central waveguides visible.
 - Waveguide length and grouped length difference support `Pcell_Bend_90deg` (Circular, Bezier and Euler), mixed with supported waveguides and ordinary Spirals. Reports include width and bend parameters, count each standalone 90° bend once, and account for arrays and instance scaling.
 
