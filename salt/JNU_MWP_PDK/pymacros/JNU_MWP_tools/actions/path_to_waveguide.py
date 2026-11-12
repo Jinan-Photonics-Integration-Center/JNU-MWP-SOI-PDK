@@ -51,6 +51,7 @@ from JNU_MWP_tools.core.common import (
 )
 from JNU_MWP_tools.core.gui_state import (
     exec_dialog_with_persisted_size,
+    position_dialog_center_right,
 )
 from JNU_MWP_tools.core.ui_language import active_language, LANGUAGE_ZH, CHOICE_LABELS_ZH
 
@@ -2129,10 +2130,16 @@ def _show_capacity_warning(view, analyses, requested_radius, dbu, can_reduce, sk
                 marker.set(pya.DEdge(start, end))
 
     checkbox.toggled(toggle_markers)
+    # 消息框显示时会按内容重新排版，下一轮事件循环再按最终尺寸定位。
+    position_timer = pya.QTimer(message)
+    position_timer.setSingleShot(True)
+    position_timer.timeout(lambda: position_dialog_center_right(message))
     try:
         checkbox.setChecked(True)
+        position_timer.start(0)
         return pya.QMessageBox_StandardButton(message.exec_()) == pya.QMessageBox.Yes
     finally:
+        position_timer.stop()
         clear_markers()
 
 
