@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """仅安装黑盒交付包时，核验五个新增固定 cell 的冷启动可用性。"""
 
@@ -20,7 +20,7 @@ def _probe():
     assert black is not None and "v1.3" in black.description
     assert not list(black.layout().pcell_names())
     names = {
-        "1550_crossing4", "1310_500nm_TE_terminator", "1550_500nm_TE_terminator",
+        "1550_crossing4", "1310_350nm_TE_temminator", "1550_500nm_TE_terminator",
         "1310_Ybranch", "1550_Ybranch", "1550_PR",
     }
     for old_name in ("ebeam_crossing4", "ebeam_terminator_te1310",

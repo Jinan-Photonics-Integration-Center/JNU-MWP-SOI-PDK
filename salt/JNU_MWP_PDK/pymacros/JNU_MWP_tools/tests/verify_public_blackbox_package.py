@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """构建一次隔离黑盒交付目录并重读全部器件与源码排除项。"""
 
@@ -96,7 +96,7 @@ def main():
             ports = [s for s in cell.shapes(layout.layer(1, 10)).each() if s.is_path()]
             assert len(si) == len(ports) > 0 and all(s.is_box() for s in si), cell.name
     assert len(names) == 32, len(names)
-    assert {"1550_crossing4", "1310_500nm_TE_terminator", "1550_500nm_TE_terminator",
+    assert {"1550_crossing4", "1310_350nm_TE_temminator", "1550_500nm_TE_terminator",
             "1310_Ybranch", "1550_Ybranch", "1550_PR"} <= names
     assert not any(name.startswith("Pcell_") for name in names)
     assert not {"ebeam_crossing4", "ebeam_terminator_te1310", "ebeam_terminator_te1550",

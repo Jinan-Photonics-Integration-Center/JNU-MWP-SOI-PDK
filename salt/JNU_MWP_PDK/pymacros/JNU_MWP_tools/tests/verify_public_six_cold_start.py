@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """在隔离 KLayout GUI 冷启动后核验授权白盒与语言标签。"""
 
@@ -21,7 +21,7 @@ def _probe():
     assert "v1.3" in white.description and "v1.3" in black.description
 
     fixed_names = (
-        "1550_crossing4", "1310_500nm_TE_terminator", "1550_500nm_TE_terminator",
+        "1550_crossing4", "1310_350nm_TE_temminator", "1550_500nm_TE_terminator",
         "1310_Ybranch", "1550_Ybranch", "1550_PR",
     )
     for old_name in ("ebeam_crossing4", "ebeam_terminator_te1310",
