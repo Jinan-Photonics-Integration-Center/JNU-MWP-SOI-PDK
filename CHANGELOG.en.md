@@ -9,6 +9,10 @@
 
 Updates are listed newest first. Historical dates follow Git commit dates in Beijing time (UTC+8). Related changes on the same day are grouped; the full commit history shows the content and timestamp of every commit.
 
+## 2026-11-18 · Keep out layer
+
+- Layer Exclude now lists Keep out (202/0). It is selected by default and remembers the last confirmed choice.
+
 ## 2026-11-17 · 1310 nm terminator name
 
 - Rename `1310_500nm_TE_terminator` to `1310_350nm_TE_temminator` in the whitebox filename, top cell and blackbox. Preserve geometry, text and the 350 nm port, with read compatibility for old whitebox names.
