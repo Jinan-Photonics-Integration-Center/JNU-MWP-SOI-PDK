@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """验证两组多选长度差、非模态选取、整次取消、GDS 重读及双语菜单。"""
 
@@ -307,8 +307,8 @@ def _gui_checks():
             setattr(builtins, ui_language._SESSION_KEY, language)
             macro.run()
             macro.run()
-            assert len(window._jnu_menu_actions) == 14
-            assert len({str(item.title) for item in window._jnu_menu_actions}) == 14
+            assert len(window._jnu_menu_actions) == 15
+            assert len({str(item.title) for item in window._jnu_menu_actions}) == 15
             menu_action = window.menu().action("jnu_mwp_pdk_menu.waveguides.jnu_action_calculate_waveguide_length_difference")
             assert menu_action.title == "计算波导长度差 / Calculate Waveguide Length Difference"
             report = compare(menu_action, instances[:2], [instances[0], long_instance])

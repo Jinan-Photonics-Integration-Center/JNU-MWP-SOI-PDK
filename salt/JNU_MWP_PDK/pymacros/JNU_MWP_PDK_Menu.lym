@@ -16,7 +16,7 @@
  <dsl-interpreter-name/>
  <text># -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 # JNU_MWP_PDK GUI 菜单初始化宏。
 # 该宏在 KLayout 顶部菜单创建带版本号的 JNU_MWP_SOI_PDK 入口，并使用持久化的
@@ -63,6 +63,7 @@ _MENU_TITLES_ZH = {
     "jnu_action_layer_exclude": "排除图层",
     "jnu_action_numerical_text_array": "数字文本阵列",
     "jnu_action_snap_components": "吸附器件",
+    "jnu_action_generate_cell_blocks": "生成单元覆盖 Block",
     "jnu_action_reload_jnu_pdk": "重新加载 JNU PDK",
     "jnu_action_update_pdk": "检查 PDK 更新",
     "jnu_action_install_private": "安装／更新白盒器件库",
@@ -176,6 +177,15 @@ _PD = %(pymacros_dir)s
 if _PD not in sys.path:
     sys.path.insert(0, _PD)
 from JNU_MWP_tools.actions.snap_components import snap_components as _fn
+_fn()
+""" % {"pymacros_dir": repr(_PYMACROS_DIR)}
+
+_CELL_BLOCKS_CODE = r"""
+import sys
+_PD = %(pymacros_dir)s
+if _PD not in sys.path:
+    sys.path.insert(0, _PD)
+from JNU_MWP_tools.actions.cell_blocks import generate_cell_blocks as _fn
 _fn()
 """ % {"pymacros_dir": repr(_PYMACROS_DIR)}
 
@@ -411,6 +421,7 @@ def register_jnu_menu_items():
         (layout_parent, "jnu_action_layer_exclude", "Layer Exclude", _LAYER_EXCLUDE_CODE),
         (layout_parent, "jnu_action_numerical_text_array", "Numerical text array", _NUMERICAL_TEXT_ARRAY_CODE),
         (layout_parent, "jnu_action_snap_components", "Snap components", _SNAP_COMPONENTS_CODE),
+        (layout_parent, "jnu_action_generate_cell_blocks", "Generate Cell Blocks", _CELL_BLOCKS_CODE),
         (root_menu, "jnu_action_reload_jnu_pdk", "Reload JNU PDK", _RELOAD_PDK_CODE),
         (root_menu, "jnu_action_update_pdk", "Check for PDK Updates", "from JNU_MWP_tools.actions.install_pdk import show_installer; show_installer('update')"),
         (root_menu, "jnu_action_install_private", "Install / Update Whitebox Library", "from JNU_MWP_tools.actions.install_pdk import show_installer; show_installer('private')"),
