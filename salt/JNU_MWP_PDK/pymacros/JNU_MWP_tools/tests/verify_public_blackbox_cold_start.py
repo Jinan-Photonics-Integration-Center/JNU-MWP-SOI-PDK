@@ -26,7 +26,7 @@ def _probe():
     for old_name in ("ebeam_crossing4", "ebeam_terminator_te1310",
                      "ebeam_terminator_te1550", "ebeam_y_1310", "ebeam_y_1550"):
         assert black.layout().cell(old_name) is None
-    assert len(list(black.layout().each_top_cell())) == 32
+    assert len(list(black.layout().each_top_cell())) == 34
     assert black.layout().cell("Pcell_Waveguide_Bump") is None
     for name in names:
         layout = pya.Layout()

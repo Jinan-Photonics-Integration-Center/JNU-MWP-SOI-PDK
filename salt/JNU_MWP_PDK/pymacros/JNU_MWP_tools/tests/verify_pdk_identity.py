@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """隔离冷启动验证菜单版本、技术改名、旧状态迁移和黑盒独立加载。"""
 
@@ -39,7 +39,7 @@ def _probe():
     technology = pya.Technology.technology_by_name(TECHNOLOGY_NAME)
     assert Path(technology.eff_layer_properties_file()).resolve() == (package / "layers.lyp").resolve()
     black = pya.Library.library_by_name("JNULib_BlackBox")
-    assert black and len(list(black.layout().each_top_cell())) == 32
+    assert black and len(list(black.layout().each_top_cell())) == 34
     assert TECHNOLOGY_NAME in black.description
     white = pya.Library.library_by_name("JNULib")
     black_only = os.environ["JNU_IDENTITY_MODE"] == "black"

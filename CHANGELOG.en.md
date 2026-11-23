@@ -9,6 +9,10 @@
 
 Updates are listed newest first. Historical dates follow Git commit dates in Beijing time (UTC+8). Related changes on the same day are grouped; the full commit history shows the content and timestamp of every commit.
 
+## 2026-11-23 · 1550 nm 1×8 and 1×10 MMIs
+
+- Add `1550_1x8_MMI` and `1550_1x10_MMI` with 500 nm optical ports to the independent whitebox library and the PDK blackbox library.
+
 ## 2026-11-18 · Layer Exclude
 
 - Layer Exclude now lists Keep out (202/0). It is selected by default and remembers the last confirmed choice.

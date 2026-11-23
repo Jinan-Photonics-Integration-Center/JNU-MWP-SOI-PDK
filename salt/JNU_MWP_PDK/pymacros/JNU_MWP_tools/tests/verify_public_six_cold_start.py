@@ -27,7 +27,7 @@ def _probe():
     for old_name in ("ebeam_crossing4", "ebeam_terminator_te1310",
                      "ebeam_terminator_te1550", "ebeam_y_1310", "ebeam_y_1550"):
         assert white.layout().cell(old_name) is None and black.layout().cell(old_name) is None
-    assert len(list(black.layout().each_top_cell())) == 32
+    assert len(list(black.layout().each_top_cell())) == 34
     assert not list(black.layout().pcell_names())
     assert black.layout().cell("Pcell_Waveguide_Bump") is None
     authorized = os.environ.get("JNU_EXPECT_WHITEBOX") == "1"
@@ -58,7 +58,7 @@ def _probe():
     assert labels["max_theta"] == ("最大弯曲角度" if chinese else "Maximum angle")
     result = {"whitebox": list(fixed_names) + ["Pcell_Waveguide_Bump"] if authorized
               else ["Pcell_Waveguide_Bump"],
-              "blackbox_count": 32,
+              "blackbox_count": 34,
               "language": "zh_CN" if chinese else "en", "ebeam_installed": False}
     Path(os.environ["JNU_SIX_REPORT"]).write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
