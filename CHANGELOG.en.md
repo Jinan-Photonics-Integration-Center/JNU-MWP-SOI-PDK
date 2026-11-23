@@ -5,9 +5,13 @@
 
 # Changelog
 
-[Back to README](README.en.md) · [Full commit history](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-PDK/commits/JNU_MWP_PDK_V1.10/)
+[Back to README](README.en.md) · [Full commit history](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-PDK/commits/JNU_MWP_PDK_V1.11/)
 
 Updates are listed newest first. Historical dates follow Git commit dates in Beijing time (UTC+8). Related changes on the same day are grouped; the full commit history shows the content and timestamp of every commit.
+
+## 2026-11-23 · V1.11 development branch
+
+- V1.10 was merged into `main` in PR #10. The development branch and menu version advance to V1.11.
 
 ## 2026-11-23 · 1550 nm 1×8 and 1×10 MMIs
 

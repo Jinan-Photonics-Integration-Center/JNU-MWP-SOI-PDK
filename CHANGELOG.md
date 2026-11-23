@@ -5,9 +5,13 @@
 
 # 更新说明
 
-[返回 README](README.md) · [完整提交记录](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-PDK/commits/JNU_MWP_PDK_V1.10/)
+[返回 README](README.md) · [完整提交记录](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-PDK/commits/JNU_MWP_PDK_V1.11/)
 
 按更新日期倒序排列。历史日期采用 Git 提交日期（北京时间，UTC+8），同一天的相关改动合并说明；完整提交记录可查看每一次提交的内容与时间。
+
+## 2026-11-23 · V1.11 开发分支
+
+- V1.10 通过 PR #10 合并到 `main`，开发分支和菜单版本递增至 V1.11。
 
 ## 2026-11-23 · 1550 nm 1×8 与 1×10 MMI
 
