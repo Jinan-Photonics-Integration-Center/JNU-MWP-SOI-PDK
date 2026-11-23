@@ -5,9 +5,44 @@
 
 # Changelog
 
-[Back to README](README.en.md) · [Full commit history](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-PDK/commits/JNU_MWP_PDK_V1.9/)
+[Back to README](README.en.md) · [Full commit history](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-PDK/commits/JNU_MWP_PDK_V1.10/)
 
 Updates are listed newest first. Historical dates follow Git commit dates in Beijing time (UTC+8). Related changes on the same day are grouped; the full commit history shows the content and timestamp of every commit.
+
+## 2026-11-23 · 1550 nm 1×8 and 1×10 MMIs
+
+- Add `1550_1x8_MMI` and `1550_1x10_MMI` with 500 nm optical ports to the independent whitebox library and the PDK blackbox library.
+
+## 2026-11-18 · Layer Exclude
+
+- Layer Exclude now lists Keep out (202/0). It is selected by default and remembers the last confirmed choice.
+- Correct the Deep Trench selection from 40/0 to 201/0 to match the technology and DRC layers.
+
+## 2026-11-17 · 1310 nm terminator name
+
+- Rename `1310_500nm_TE_terminator` to `1310_350nm_TE_temminator` in the whitebox filename, top cell and blackbox. Preserve geometry, text and the 350 nm port, with read compatibility for old whitebox names.
+
+## 2026-11-12 · Standalone bend lengths
+
+- Fix duplicate or empty draft preset names blocking Manage/Delete or closing the dialog. These actions restore the saved name while retaining preset parameters and notes; confirming generation still validates the name.
+- Position the Path to Waveguide capacity warning at the center-right of the current screen to keep central waveguides visible.
+- Waveguide length and grouped length difference support `Pcell_Bend_90deg` (Circular, Bezier and Euler), mixed with supported waveguides and ordinary Spirals. Reports include width and bend parameters, count each standalone 90° bend once, and account for arrays and instance scaling.
+
+## 2026-11-11 · Local whitebox source directory
+
+- Support a whitebox GDS source directory through `jnu_whitebox_source.json` in the KLayout user directory. Restarting or reloading JNU PDK reads saved source edits; invalid configuration produces a message and falls back to the installed copy.
+
+## 2026-11-10 · Path to Waveguide
+
+- DevRec (68/0) is hidden by default in the SOI layer settings and can be enabled manually in the layer list.
+- The warning automatically highlights segments that cannot fit the requested bend radius or fixed transitions. Uncheck the option or close the warning, including by continuing to generate the waveguide, to clear the highlights.
+
+## 2026-11-09 · V1.10 development branch
+
+- Add a JNU SOI layout API and JSON batch entry point for device discovery, PCell placement, named-port routing, and GDS export.
+
+- V1.9 was merged into main in PR #7. The development branch and menu version advance to V1.10.
+- The native DRC now requires 8 µm of minimum M2 edge-to-edge spacing, up from 6 µm. M1 spacing and deep-trench-to-M2 spacing are unchanged.
 
 ## 2026-11-09 · Blackbox optical port annotations and 1550 PR
 

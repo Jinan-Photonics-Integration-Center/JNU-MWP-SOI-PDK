@@ -7,9 +7,9 @@
 
 # JNU-MWP-SOI-PDK
 
-A KLayout silicon photonics PDK from Jinan University's Optoelectronic Hybrid Integration Laboratory. It provides the `JNU_MWP_SOI_PDK` technology, parametric `JNULib`, fixed-device `JNULib_BlackBox`, waveguide tools, and DRC. The top-level menu shows `JNU_MWP_SOI_PDK V1.9`. The public repository works independently with nine PCell types and 32 fixed blackboxes; 32 fixed whitebox GDS files are available through a separately authorized library.
+A KLayout silicon photonics PDK from Jinan University's Optoelectronic Hybrid Integration Laboratory. It provides the `JNU_MWP_SOI_PDK` technology, parametric `JNULib`, fixed-device `JNULib_BlackBox`, waveguide tools, and DRC. The top-level menu shows `JNU_MWP_SOI_PDK V1.10`. The public repository works independently with nine PCell types and 34 fixed blackboxes; 34 fixed whitebox GDS files are available through a separately authorized library.
 
-**[Changelog and update dates](CHANGELOG.en.md)**
+**[Technical handbook V1.10 (Chinese, 2026-11-16)](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-PDK/releases/tag/handbook-v1.10-20261116)** · **[Changelog and update dates](CHANGELOG.en.md)**
 
 <a id="git-clone-installation-windows"></a>
 ## Installation and updates
@@ -39,11 +39,15 @@ Copy these prompts into an AI agent **that can access local files and run comman
 <a id="updates-and-whitebox-gds"></a>
 ### Updates, language, and whiteboxes
 
-- A `main` installation checks GitHub for updates at startup. Click **Update now** in the prompt or use **JNU_MWP_SOI_PDK V1.9 → Check for PDK Updates**. Development branches do not show automatic update prompts. Restart KLayout after updating.
+Whitebox maintainers can create `jnu_whitebox_source.json` in the KLayout user directory (`Application.instance().application_data_path()`) containing `{"gds_directory": "D:/your-library/JNU_MWP_gds"}`. Use an absolute directory containing whitebox GDS files. When valid, JNULib reads this source directly at startup or **Reload JNU PDK**, so saved GDS edits need no copy into the installation. Devices converted to ordinary local cells must be placed again. Remove the configuration to restore the installed-directory priority. Missing or empty directories and invalid configuration produce a message and fall back to the installed copy. This controls whitebox loading only; blackboxes still follow the publication workflow.
+
+- A `main` installation checks GitHub for updates at startup. Click **Update now** in the prompt or use **JNU_MWP_SOI_PDK V1.10 → Check for PDK Updates**. Development branches do not show automatic update prompts. Restart KLayout after updating.
 - All function menus display **中文 / English** together, with no language switching required. **重新加载 JNU PDK / Reload JNU PDK** can reload Python tools, but changes to startup macros, technology, or installation paths still require a restart.
-- Authorized users can choose **JNU_MWP_SOI_PDK V1.9 → Install / Update Whitebox Library** to install 32 fixed whiteboxes from the separate [JNU-MWP-SOI-Library](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-Library). This public PDK repository contains no whitebox GDS.
+- Authorized users can choose **JNU_MWP_SOI_PDK V1.10 → Install / Update Whitebox Library** to install 34 fixed whiteboxes from the separate [JNU-MWP-SOI-Library](https://github.com/Jinan-Photonics-Integration-Center/JNU-MWP-SOI-Library). This public PDK repository contains no whitebox GDS.
 
 ## Features and user guide
+
+For AI-assisted or scripted layout, see the [JNU SOI layout API](docs/SOI_LAYOUT_API.md) to discover devices, connect named ports, and export GDS.
 
 **Click any card below to open its section in the [detailed user guide](docs/USER_GUIDE.md#english-user-guide).**
 

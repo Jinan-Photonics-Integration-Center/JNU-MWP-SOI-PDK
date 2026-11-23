@@ -24,6 +24,8 @@ from JNU_MWP_tools.release.package_blackbox_pdk import LIBRARY_DBU, _draw_blackb
 
 # 规范白盒已统一文件名与顶层名称；旧 EBeam 名称只由运行时加载器兼容。
 SOURCE_NAMES = {name: name for name in PUBLIC_EBEAM_CELL_NAMES}
+MINIMUM_FIXED_COUNT = 34
+REQUIRED_SOURCE_NAMES = {*SOURCE_NAMES, "1550_1x8_MMI", "1550_1x10_MMI"}
 
 
 def _write_blackbox(cell, source_layout, destination, target_name=None):
@@ -60,9 +62,11 @@ def sync_blackboxes(source, output=PYMACROS / "JNU_MWP_blackbox_gds"):
         raise FileNotFoundError("白盒源目录或黑盒输出目录不存在：%s / %s" % (source, output))
     source_files = sorted(path for path in source.glob("*.gds")
                           if not path.stem.startswith("Pcell_"))
-    if len(source_files) < 32 or not all((source / (name + ".gds")).is_file()
-                                           for name in SOURCE_NAMES):
-        raise RuntimeError("独立器件库白盒不完整，至少需要现有 32 个 GDS（含五个 EBeam）：%s" % source)
+    if len(source_files) < MINIMUM_FIXED_COUNT or not all(
+        (source / (name + ".gds")).is_file() for name in REQUIRED_SOURCE_NAMES
+    ):
+        raise RuntimeError("独立器件库白盒不完整，至少需要 %d 个 GDS：%s" %
+                           (MINIMUM_FIXED_COUNT, source))
 
     with tempfile.TemporaryDirectory(prefix="jnu-blackbox-sync-", dir=output.parent) as temporary:
         staged = Path(temporary)
@@ -77,7 +81,7 @@ def sync_blackboxes(source, output=PYMACROS / "JNU_MWP_blackbox_gds"):
             cell = layout.cell(tops[0]) if isinstance(tops[0], int) else tops[0]
             if cell.name.startswith("Pcell_"):
                 continue
-            if cell.bbox().empty() or (path.stem in SOURCE_NAMES and cell.name != path.stem):
+            if cell.bbox().empty() or (path.stem in REQUIRED_SOURCE_NAMES and cell.name != path.stem):
                 raise RuntimeError("白盒 GDS 源名称错误或器件为空：%s / %s" % (path, cell.name))
             target_name = SOURCE_NAMES.get(path.stem, cell.name)
             output_name = (SOURCE_NAMES.get(path.stem, path.stem) + ".gds")
@@ -87,8 +91,9 @@ def sync_blackboxes(source, output=PYMACROS / "JNU_MWP_blackbox_gds"):
             output_names.add(output_name)
             _write_blackbox(cell, layout, staged / output_name, target_name=target_name)
             verify_blackbox_gds(staged / output_name, target_name)
-        if len(target_names) < 32:
-            raise RuntimeError("独立器件库中固定白盒不足 32 个：%s" % source)
+        if len(target_names) < MINIMUM_FIXED_COUNT:
+            raise RuntimeError("独立器件库中固定白盒不足 %d 个：%s" %
+                               (MINIMUM_FIXED_COUNT, source))
 
         changed = []
         for path in sorted(staged.glob("*.gds")):

@@ -43,7 +43,8 @@ KEEP_LAYER_SPECS = [
     ("LayerM2", 12, 0, "金属2层（布线）"),
     ("LayerMLOpen", 13, 0, "金属焊盘开口层"),
     ("LayerText", 10, 0, "文本标记层（Layer 10）"),
-    ("LayerDeepTrench", 40, 0, "深槽隔离层"),
+    ("LayerDeepTrench", 201, 0, "深槽隔离层"),
+    ("LayerKeepOut", 202, 0, "Keep out 禁布区"),
     ("LayerDicing", 210, 0, "划片层"),
 ]
 

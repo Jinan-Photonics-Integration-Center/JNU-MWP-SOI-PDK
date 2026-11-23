@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
-"""显示波导及普通 Spiral 的总长与参数；复合波导排除 taper，复合 Spiral 整批拒绝。"""
+"""显示波导、独立 90° 弯及普通 Spiral 的总长与参数。"""
 
 import math
 
@@ -100,10 +100,11 @@ def _waveguide_detail_lines(details, include_bends=False):
             lines.append(_ui("Excluded taper length: ", "已排除的 taper 长度：") + _format_parameter(item["excluded_taper_length_um"]))
         else:
             lines.append(_ui("Waveguide width: ", "波导宽度：") + _format_parameter(params["width"]))
-        if item["kind"] in ("paperclip", "archimedean"):
+        if item["kind"] in ("paperclip", "archimedean", "bend90"):
             lines.append(_ui("Device type: ", "器件类型：") + {
                 "paperclip": _ui("Paperclip Spiral", "回形针 Spiral"),
                 "archimedean": _ui("Archimedean Spiral", "阿基米德 Spiral"),
+                "bend90": _ui("90° Bend", "独立 90° 弯曲波导"),
             }[item["kind"]])
         bend = params["bend_type"]
         bend_label = {
@@ -168,19 +169,19 @@ def calculate_waveguide_length():
                 "请取消选中复合宽度 Spiral 后重试。",
             ),
             "empty": _ui(
-                "Select Waveguide, Composite_Waveguide, Paperclip Spiral or Archimedean Spiral instances first.",
-                "请先选中 Waveguide、复合宽度 Waveguide、普通回形针或阿基米德 Spiral 实例。",
+                "Select Waveguide, Composite_Waveguide, Pcell_Bend_90deg, Paperclip Spiral or Archimedean Spiral instances first.",
+                "请先选中 Waveguide、复合宽度 Waveguide、Pcell_Bend_90deg、普通回形针或阿基米德 Spiral 实例。",
             ),
             "unsupported": _ui(
-                "Only Waveguide, Composite_Waveguide, Paperclip Spiral and Archimedean Spiral instances are supported.\n"
+                "Only Waveguide, Composite_Waveguide, Pcell_Bend_90deg, Paperclip Spiral and Archimedean Spiral instances are supported.\n"
                 "The selection contains another object, so no total was calculated.",
-                "只支持 Waveguide、复合宽度 Waveguide、普通回形针和阿基米德 Spiral 实例。\n"
+                "只支持 Waveguide、复合宽度 Waveguide、Pcell_Bend_90deg、普通回形针和阿基米德 Spiral 实例。\n"
                 "选择中包含其他对象，已停止计算；请仅选中波导后重试。",
             ),
             "missing_length": _ui(
-                "A selected waveguide or Spiral has missing or ambiguous actual length data.\n"
+                "A selected waveguide, 90° Bend or Spiral has missing or ambiguous actual length data.\n"
                 "No total was calculated. Regenerate that device and try again.",
-                "选中的波导或 Spiral 缺少有效的实际长度数据或存在重复长度标注，已停止计算。\n"
+                "选中的波导、独立 90° 弯或 Spiral 缺少有效的实际长度数据或存在重复长度标注，已停止计算。\n"
                 "请重新生成该器件后重试。",
             ),
             "missing_profile": _ui(

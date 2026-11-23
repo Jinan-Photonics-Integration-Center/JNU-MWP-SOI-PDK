@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """用真实 Salt 安装与两次独立 KLayout 启动验证完整实验室包。"""
 
@@ -41,7 +41,7 @@ def probe():
     assert gdss, "固定 GDS 缺失"
     public_names = {
         "ebeam_crossing4": "1550_crossing4",
-        "ebeam_terminator_te1310": "1310_500nm_TE_terminator",
+        "ebeam_terminator_te1310": "1310_350nm_TE_temminator",
         "ebeam_terminator_te1550": "1550_500nm_TE_terminator",
         "ebeam_y_1310": "1310_Ybranch",
         "ebeam_y_1550": "1550_Ybranch",

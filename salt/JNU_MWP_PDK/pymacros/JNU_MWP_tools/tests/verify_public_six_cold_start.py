@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """在隔离 KLayout GUI 冷启动后核验授权白盒与语言标签。"""
 
@@ -21,13 +21,13 @@ def _probe():
     assert "v1.3" in white.description and "v1.3" in black.description
 
     fixed_names = (
-        "1550_crossing4", "1310_500nm_TE_terminator", "1550_500nm_TE_terminator",
+        "1550_crossing4", "1310_350nm_TE_temminator", "1550_500nm_TE_terminator",
         "1310_Ybranch", "1550_Ybranch", "1550_PR",
     )
     for old_name in ("ebeam_crossing4", "ebeam_terminator_te1310",
                      "ebeam_terminator_te1550", "ebeam_y_1310", "ebeam_y_1550"):
         assert white.layout().cell(old_name) is None and black.layout().cell(old_name) is None
-    assert len(list(black.layout().each_top_cell())) == 32
+    assert len(list(black.layout().each_top_cell())) == 34
     assert not list(black.layout().pcell_names())
     assert black.layout().cell("Pcell_Waveguide_Bump") is None
     authorized = os.environ.get("JNU_EXPECT_WHITEBOX") == "1"
@@ -58,7 +58,7 @@ def _probe():
     assert labels["max_theta"] == ("最大弯曲角度" if chinese else "Maximum angle")
     result = {"whitebox": list(fixed_names) + ["Pcell_Waveguide_Bump"] if authorized
               else ["Pcell_Waveguide_Bump"],
-              "blackbox_count": 32,
+              "blackbox_count": 34,
               "language": "zh_CN" if chinese else "en", "ebeam_installed": False}
     Path(os.environ["JNU_SIX_REPORT"]).write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")

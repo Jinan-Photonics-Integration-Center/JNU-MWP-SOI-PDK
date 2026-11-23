@@ -439,7 +439,7 @@
   <fill-brightness>0</fill-brightness>
   <dither-pattern>I1</dither-pattern>
   <valid>true</valid>
-  <visible>true</visible>
+  <visible>false</visible>
   <transparent>true</transparent>
   <width>1</width>
   <marked>false</marked>

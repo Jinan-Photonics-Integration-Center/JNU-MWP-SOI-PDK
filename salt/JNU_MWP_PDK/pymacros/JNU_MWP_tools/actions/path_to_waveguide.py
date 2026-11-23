@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 # JNU_MWP_PDK Path to Waveguide 功能。
 # 读取选中图层中的 Path，完成参数设置、端点吸附和波导 cell 创建。
@@ -51,6 +51,7 @@ from JNU_MWP_tools.core.common import (
 )
 from JNU_MWP_tools.core.gui_state import (
     exec_dialog_with_persisted_size,
+    position_dialog_center_right,
 )
 from JNU_MWP_tools.core.ui_language import active_language, LANGUAGE_ZH, CHOICE_LABELS_ZH
 
@@ -1540,7 +1541,7 @@ def _show_waveguide_dialog(dbu=0.001):
             user_defined["preset_name"].blockSignals(False)
             name_state["loading"] = False
 
-    def flush_name(force=False):
+    def flush_name(force=False, discard_invalid=False):
         if not name_state["dirty"] or not name_state["preset_id"]:
             return True
         try:
@@ -1548,6 +1549,10 @@ def _show_waveguide_dialog(dbu=0.001):
                 state["saved"], name_state["preset_id"], preset_name_text(),
             )
         except ValueError as error:
+            if discard_invalid:
+                # 管理与取消不能被尚未保存的重名或空名称锁住，恢复原名后继续。
+                load_selected_name(_selected_user_preset(state["saved"], name_state["preset_id"]))
+                return True
             if force:
                 _message("JNU_MWP_PDK", _dialog_error(error))
             return False
@@ -1629,8 +1634,8 @@ def _show_waveguide_dialog(dbu=0.001):
         note_state["dirty"] = True
         note_timer.start(500)
 
-    def flush_user_fields(force=False):
-        if not flush_name(force):
+    def flush_user_fields(force=False, discard_invalid_name=False):
+        if not flush_name(force, discard_invalid_name):
             return False
         return flush_note()
 
@@ -1715,7 +1720,7 @@ def _show_waveguide_dialog(dbu=0.001):
             ) % _dialog_error(error))
 
     def manage_presets(_checked=False):
-        if not flush_user_fields(True):
+        if not flush_user_fields(True, discard_invalid_name=True):
             return
         current_id = _current_user_preset_id(user_defined)
         if current_id:
@@ -1758,7 +1763,7 @@ def _show_waveguide_dialog(dbu=0.001):
             dialog.accept()
 
     def reject_dialog(_checked=False):
-        if flush_user_fields(True):
+        if flush_user_fields(True, discard_invalid_name=True):
             dialog.reject()
 
     single["save_button"].clicked(
@@ -1828,7 +1833,7 @@ def _show_waveguide_dialog(dbu=0.001):
 
     while True:
         dialog_result = dialog.exec_()
-        if flush_user_fields(True):
+        if flush_user_fields(True, discard_invalid_name=(dialog_result == 0)):
             break
     persist_dialog_settings()
     if dialog_result == 0:
@@ -2070,26 +2075,76 @@ def _format_capacity_issues(analyses, requested_radius, dbu=0.001):
     return "\n".join(lines)
 
 
-def _confirm_radius_reduction(details):
-    """用Yes/Cancel确认是否按可行半径继续生成。"""
+def _show_capacity_warning(view, analyses, requested_radius, dbu, can_reduce, skipped_count):
+    """列出空间不足的线段，并可在当前视图中临时高亮。"""
     message = pya.QMessageBox()
     _set_regular_dialog_font(message)
     message.setWindowTitle(_dialog_text("JNU Path to Waveguide"))
-    message.setText(_dialog_message(
-        "Some segments cannot fit the requested bend radius.",
-        "部分线段不足以容纳请求的弯曲半径。",
-    ))
-    message.setInformativeText(details + "\n\n" + _dialog_message(
-        "Reduce the radius and continue?", "是否降低半径并继续生成？",
-    ))
-    message.setStandardButtons(pya.QMessageBox.Yes | pya.QMessageBox.Cancel)
-    try:
+    details = _format_capacity_issues(analyses, requested_radius, dbu)
+    if can_reduce:
+        message.setText(_dialog_message(
+            "Some segments cannot fit the requested bend radius.",
+            "部分线段不足以容纳请求的弯曲半径。",
+        ))
+        if skipped_count:
+            details += "\n\n" + _dialog_message(
+                "%d path(s) cannot fit the fixed transitions even with a reduced radius and will be kept.",
+                "另有 %d 条 Path 即使降低半径也无法容纳固定过渡段，将保留原 Path。",
+            ) % skipped_count
+        details += "\n\n" + _dialog_message(
+            "Reduce the radius and continue?", "是否降低半径并继续生成？",
+        )
+        message.setStandardButtons(pya.QMessageBox.Yes | pya.QMessageBox.Cancel)
         message.button(pya.QMessageBox.Yes).setText(_dialog_message("Yes", "是"))
         message.button(pya.QMessageBox.Cancel).setText(_dialog_text("Cancel"))
-    except Exception:
-        pass
-    message.setDefaultButton(pya.QMessageBox.Yes)
-    return pya.QMessageBox_StandardButton(message.exec_()) == pya.QMessageBox.Yes
+        message.setDefaultButton(pya.QMessageBox.Yes)
+    else:
+        message.setText(_dialog_message(
+            "The paths cannot fit the fixed transitions and will be kept.",
+            "这些路径无法容纳固定过渡段，将保留原路径。",
+        ))
+        message.setStandardButtons(pya.QMessageBox.Ok)
+        message.button(pya.QMessageBox.Ok).setText(_dialog_text("OK"))
+    message.setInformativeText(details)
+
+    checkbox = pya.QCheckBox(_dialog_message(
+        "Highlight insufficient segments in the layout", "在版图中标记空间不足的线段",
+    ))
+    message.setCheckBox(checkbox)
+    markers = []
+
+    def clear_markers():
+        while markers:
+            markers.pop()._destroy()
+
+    def toggle_markers(checked):
+        clear_markers()
+        if not checked:
+            return
+        # 问题坐标来自当前编辑单元；下钻编辑时需转换到画布坐标。
+        context = view.active_cellview().context_dtrans()
+        for analysis in analyses:
+            for issue in analysis["issues"]:
+                start = context * issue["start"].to_dtype(dbu)
+                end = context * issue["end"].to_dtype(dbu)
+                marker = pya.Marker(view)
+                markers.append(marker)
+                marker.frame_color = 0xFF6600
+                marker.line_width = 5
+                marker.set(pya.DEdge(start, end))
+
+    checkbox.toggled(toggle_markers)
+    # 消息框显示时会按内容重新排版，下一轮事件循环再按最终尺寸定位。
+    position_timer = pya.QTimer(message)
+    position_timer.setSingleShot(True)
+    position_timer.timeout(lambda: position_dialog_center_right(message))
+    try:
+        checkbox.setChecked(True)
+        position_timer.start(0)
+        return pya.QMessageBox_StandardButton(message.exec_()) == pya.QMessageBox.Yes
+    finally:
+        position_timer.stop()
+        clear_markers()
 
 
 def _safe_cell_name(layout, base_name, current_cell=None):
@@ -2425,18 +2480,13 @@ def path_to_waveguide():
 
         reducible = [analysis for _index, _obj, _path, _original, analysis in prepared if analysis["issues"] and analysis["possible"]]
         impossible = [analysis for _index, _obj, _path, _original, analysis in prepared if not analysis["possible"]]
-        if reducible:
-            details = _format_capacity_issues(reducible + impossible, requested_radius, layout.dbu)
-            if impossible:
-                details += "\n\n另有 %d 条Path即使降低半径也无法容纳固定过渡段，将保留原Path。" % len(impossible)
-            if not _confirm_radius_reduction(details):
-                return
-        elif impossible:
-            _message(
-                "JNU_MWP_PDK",
-                "以下Path无法容纳固定过渡段，将保留原Path：\n" +
-                _format_capacity_issues(impossible, requested_radius, layout.dbu),
+        if reducible or impossible:
+            confirmed = _show_capacity_warning(
+                view, reducible + impossible, requested_radius, layout.dbu,
+                can_reduce=bool(reducible), skipped_count=len(impossible),
             )
+            if reducible and not confirmed:
+                return
 
         # 本地 PCell 的声明注册和首次 variant 几何生产都不能在活动的
         # KLayout Undo transaction 中执行，因此先完成所有 variant 预生成。

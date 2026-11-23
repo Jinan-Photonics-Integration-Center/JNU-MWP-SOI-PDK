@@ -66,17 +66,18 @@ def main():
                     assert (info.layer, info.datatype) in {(1, 0), (1, 10), (68, 0), (10, 0), (998, 0)}
                 if cell.name not in names:
                     assert not shapes or (info.layer, info.datatype) == (10, 0)
-    assert len(names) == 32, "黑盒器件数应为 32 个：%d" % len(names)
+    assert len(names) == 34, "黑盒器件数应为 34 个：%d" % len(names)
     assert {
-        "1550_crossing4", "1310_500nm_TE_terminator", "1550_500nm_TE_terminator",
+        "1550_crossing4", "1310_350nm_TE_temminator", "1550_500nm_TE_terminator",
         "1310_Ybranch", "1550_Ybranch", "1550_PR",
     } <= names
     assert not any(name.startswith("Pcell_") for name in names)
     assert "1550_2um_TE_terminator" in names
-    assert {"1310_4x4_MMI", "1550_1x2_MMI", "1550_1x4_MMI",
+    assert {"1310_4x4_MMI", "1550_1x2_MMI", "1550_1x4_MMI", "1550_1x8_MMI", "1550_1x10_MMI",
             "1550_2x2_MMI_2um-InputPort_for_TE0", "1550_4x4_MMI"} <= names
     assert all("*" not in name and "×" not in name for name in names if "MMI" in name)
-    assert not {"1310_TE_Terminator", "1550_TE_Terminator", "1550_2um_terminator"} & names
+    assert not {"1310_TE_Terminator", "1310_500nm_TE_terminator",
+                "1550_TE_Terminator", "1550_2um_terminator"} & names
     assert not {"ebeam_crossing4", "ebeam_terminator_te1310", "ebeam_terminator_te1550",
                 "ebeam_y_1310", "ebeam_y_1550"} & names
     library = pya.Library.library_by_name("JNULib_BlackBox")

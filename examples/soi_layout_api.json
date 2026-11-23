@@ -1,0 +1,77 @@
+{
+  "api_version": 1,
+  "top": "JNU_API_DEMO",
+  "operations": [
+    {
+      "op": "place",
+      "id": "source",
+      "library": "JNULib",
+      "name": "Pcell_Straight_Waveguide",
+      "at": [
+        0,
+        0
+      ],
+      "parameters": {
+        "length": 30,
+        "width": 0.5
+      }
+    },
+    {
+      "op": "place",
+      "id": "taper",
+      "library": "JNULib",
+      "name": "Pcell_Taper",
+      "at": [
+        150,
+        60
+      ],
+      "parameters": {
+        "length": 30,
+        "width1": 0.5,
+        "width2": 2,
+        "wg_layer": "1/0",
+        "pin_layer": "1/10",
+        "devrec_layer": "68/0",
+        "port1_extension_length": 0,
+        "port2_extension_length": 0
+      }
+    },
+    {
+      "op": "connect",
+      "start": [
+        "source",
+        "opt2"
+      ],
+      "end": [
+        "taper",
+        "opt1"
+      ],
+      "via": [
+        [
+          80,
+          0
+        ],
+        [
+          80,
+          60
+        ]
+      ],
+      "radius": 20,
+      "bend_type": "Bezier"
+    },
+    {
+      "op": "waveguide",
+      "points": [
+        [
+          180,
+          60
+        ],
+        [
+          230,
+          60
+        ]
+      ],
+      "width": 2
+    }
+  ]
+}

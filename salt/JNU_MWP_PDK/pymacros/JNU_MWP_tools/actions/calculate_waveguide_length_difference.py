@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """分两步选取波导组并比较总长，复合波导排除 taper。"""
 
@@ -101,10 +101,10 @@ def _selection_error(error):
             "empty": _ui("Select at least one waveguide instance for this group, then click OK.",
                          "请为当前组选取至少一个波导实例，再按确定。"),
             "unsupported": _ui(
-                "Only Waveguide, Composite_Waveguide, ordinary Paperclip_Spiral "
+                "Only Waveguide, Composite_Waveguide, Pcell_Bend_90deg, ordinary Paperclip_Spiral "
                 "and Archimedean_Spiral instances are supported.\n"
                 "The selection contains another object, so no difference was calculated.",
-                "只支持单宽度和复合宽度 Waveguide、普通回形针 Paperclip_Spiral "
+                "只支持单宽度和复合宽度 Waveguide、Pcell_Bend_90deg、普通回形针 Paperclip_Spiral "
                 "及阿基米德 Archimedean_Spiral 实例。\n"
                 "选择中包含其他对象，已停止计算长度差。",
             ),
@@ -115,9 +115,9 @@ def _selection_error(error):
                 "请取消选中复合宽度 Spiral 后重试。",
             ),
             "missing_length": _ui(
-                "A selected Waveguide or Spiral has missing or ambiguous length data.\n"
+                "A selected Waveguide, 90° Bend or Spiral has missing or ambiguous length data.\n"
                 "Regenerate that device and try again.",
-                "选中的 Waveguide 或 Spiral 缺少有效长度数据或存在重复长度标注。\n"
+                "选中的 Waveguide、独立 90° 弯或 Spiral 缺少有效长度数据或存在重复长度标注。\n"
                 "请重新生成该器件后重试。",
             ),
             "missing_profile": _ui(

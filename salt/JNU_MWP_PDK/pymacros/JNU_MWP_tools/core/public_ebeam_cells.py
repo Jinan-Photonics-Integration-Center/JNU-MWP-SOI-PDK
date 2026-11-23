@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 # 创建者: Junyi Zhang
-# 时间: 2026-10
+# 时间: 2026-11
 
 """EBeam 来源器件的统一名称，以及旧白盒文件的读取兼容映射。"""
 
 
 PUBLIC_EBEAM_CELLS = (
     ("ebeam_crossing4", "1550_crossing4"),
-    ("ebeam_terminator_te1310", "1310_500nm_TE_terminator"),
+    ("ebeam_terminator_te1310", "1310_350nm_TE_temminator"),
     ("ebeam_terminator_te1550", "1550_500nm_TE_terminator"),
     ("ebeam_y_1310", "1310_Ybranch"),
     ("ebeam_y_1550", "1550_Ybranch"),
@@ -19,7 +19,8 @@ PUBLIC_EBEAM_CELL_NAMES = tuple(name for _, name in PUBLIC_EBEAM_CELLS)
 
 FIXED_CELL_ALIASES = dict(PUBLIC_EBEAM_CELLS)
 FIXED_CELL_ALIASES.update({
-    "1310_TE_Terminator": "1310_500nm_TE_terminator",
+    "1310_500nm_TE_terminator": "1310_350nm_TE_temminator",
+    "1310_TE_Terminator": "1310_350nm_TE_temminator",
     "1550_TE_Terminator": "1550_500nm_TE_terminator",
     "1550_2um_terminator": "1550_2um_TE_terminator",
 })
